@@ -28,7 +28,7 @@ GLint m = 5;
 GLint n = 5;
 std::vector<GLdouble> data;
 std::string data_filename = "salinityCurrent.txt";
-std::string DATA_DIRECTORY_PATH = "C:\\Users\\Khan\\Documents\\Visual Studio 2012\\Projects\\CS450AssignmentOne\\SimpleProgram\\Data\\"; // TODO: Had difficulty with relative paths need to find method for either setting current directory or converting relative paths to absolute paths
+std::string DATA_DIRECTORY_PATH = "Data\\"; // TODO: Had difficulty with relative paths need to find method for either setting current directory or converting relative paths to absolute paths
 GLdouble NO_DATA = 0.000000;
 
 int discreatize_data(GLdouble data_value, GLdouble smallest_data_value, GLdouble largest_data_value, GLint num_buckets) {
