@@ -20,25 +20,26 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <algorithm>
 
 // A global constant for the number of points that will be in our object.
 const int NumPoints = 5;
 
-GLint m = 5;
-GLint n = 5;
-std::vector<GLdouble> data;
-std::string data_filename = "salinityCurrent.txt";
-std::string DATA_DIRECTORY_PATH = "Data\\"; // TODO: Had difficulty with relative paths need to find method for either setting current directory or converting relative paths to absolute paths
+// bluuuuuh these are gross and shouldn't be here, let's figure out a better way to do this later
+GLint m = 0;
+GLint n = 0;
+
+std::string DATA_DIRECTORY_PATH = "Data\\";
 GLdouble NO_DATA = 0.000000;
 
-int discreatize_data(GLdouble data_value, GLdouble smallest_data_value, GLdouble largest_data_value, GLint num_buckets) {
+int discretize_data(GLdouble data_value, GLdouble smallest_data_value, GLdouble largest_data_value, GLint num_buckets) {
 	if(data_value == NO_DATA) {
 		return -1;
 	}             
 	return int( (data_value-smallest_data_value)/(largest_data_value-smallest_data_value) * (num_buckets - 1)  + 0.5 );
 }
 
-int read_data_from_file(std::string filename, std::vector<GLdouble> buffer) {
+int read_data_from_file(std::string filename, std::vector<GLdouble> & buffer) {
 	std::ifstream data_file;
 	std::string line;
 	std::string filepath;
@@ -162,11 +163,20 @@ keyboard(unsigned char key, int x, int y)
 // missing the machinery to move to 3D.
 int main(int argc, char** argv)
 {
+	// data input
+	GLint num_buckets = 20; // default value
 	if(argc < 2) {
-		std::cerr << "\n\nUsage: " << argv[0] << "DATA_FILENAME\n" << std::endl;
-		//return 1;
+		std::cerr << "\n\nUsage: " << argv[0] << "DATA_FILENAME" << " NUM_BUCKETS" << std::endl;
+		std::cerr << "Default NUM_BUCKETS value is 20" << std::endl;
+		return 1;
 	}
-	data_filename = argv[1];
+	if(argc == 3) {
+		num_buckets = atoi(argv[2]);
+	}
+	std::string data_filename = argv[1];
+	
+	std::vector<GLdouble> data;
+
 	int data_read_status = read_data_from_file(data_filename, data);
 	if(data_read_status) {
 		std::cerr << "\n\nError: Attempted to read data file '" << data_filename << "'" << std::endl;
@@ -175,6 +185,17 @@ int main(int argc, char** argv)
 	std::cout << "DATA_FILENAME: '" << data_filename << "'\n";
 	std::cout << "ROW_DIMENSION: '" << m << "'\n";
 	std::cout << "COLUMN_DIMENSION: '" << n << "'\n";
+
+	// discretize and determine colors
+	std::vector<int> buckets;
+	for(auto point : data) {
+		buckets.push_back(discretize_data(point, *std::min_element(data.begin(), data.end()), *std::max_element(data.begin(), data.end()), num_buckets));
+	}
+
+
+
+
+	// graphics setup
     glutInit(&argc, argv);
 #ifdef __APPLE__
     glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DOUBLE);
