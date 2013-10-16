@@ -30,12 +30,14 @@ std::vector<GLdouble> data;
 std::string data_filename = "salinityCurrent.txt";
 std::string DATA_DIRECTORY_PATH = "Data\\"; // TODO: Had difficulty with relative paths need to find method for either setting current directory or converting relative paths to absolute paths
 GLdouble NO_DATA = 0.000000;
+GLdouble Data_Min = 0.;
+GLdouble Data_Max = 0.;
 
-int discreatize_data(GLdouble data_value, GLdouble smallest_data_value, GLdouble largest_data_value, GLint num_buckets) {
+int discreatize_data(GLdouble data_value, GLint num_buckets) {
 	if(data_value == NO_DATA) {
 		return -1;
 	}             
-	return int( (data_value-smallest_data_value)/(largest_data_value-smallest_data_value) * (num_buckets - 1)  + 0.5 );
+	return int( (data_value-Data_min)/(largest_data_value-Data_max) * (num_buckets - 1)  + 0.5 );
 }
 
 int read_data_from_file(std::string filename, std::vector<GLdouble> buffer) {
@@ -43,7 +45,8 @@ int read_data_from_file(std::string filename, std::vector<GLdouble> buffer) {
 	std::string line;
 	std::string filepath;
 	int curr_index = 0;
-	
+	GLdouble curr_data_val;
+
 	filepath = DATA_DIRECTORY_PATH + filename;
 	std::cout << "data_filepath: " << filepath << "\n\n";
 	data_file.open(DATA_DIRECTORY_PATH + filename);
@@ -53,13 +56,23 @@ int read_data_from_file(std::string filename, std::vector<GLdouble> buffer) {
 		buffer.resize(m * n);
 		std::cout << "Reading " << m * n << " data points from file '" << filename << "'" << std::endl;
 		while(getline(data_file, line, ' ')) {
-			buffer[curr_index] = stof(line);
+			curr_data_val = stof(line);
+
+			if(curr_data_val > Data_Max) {
+				Data_Max = curr_data_val;
+			} else if(curr_data_val < Data_Min) {
+				Data_Min = curr_data_val;
+			}
+			buffer[curr_index] = curr_data_val;
 			curr_index++;
 			if(curr_index >= (m * n) ) {
 				break; // TODO: This is not an elegant way to see if more data is available but recieve invalid memory argument exception without.
 			}
 		}
 		data_file.close();
+		std::cout << "Read " << curr_index << " data points from file." << std::endl;
+		std::cout << "Data_Max: " << Data_Max << std::endl;
+		std::cout << "Data_Min: " << Data_Min << std::endl;
 	} else {
 	  return 1;
 	}
