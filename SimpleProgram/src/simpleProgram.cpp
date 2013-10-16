@@ -31,12 +31,14 @@ GLint n = 0;
 
 std::string DATA_DIRECTORY_PATH = "Data\\";
 GLdouble NO_DATA = 0.000000;
+GLdouble data_min = 0.;
+GLdouble data_max = 0.;
 
 int discretize_data(GLdouble data_value, GLdouble smallest_data_value, GLdouble largest_data_value, GLint num_buckets) {
 	if(data_value == NO_DATA) {
 		return -1;
 	}             
-	return int( (data_value-smallest_data_value)/(largest_data_value-smallest_data_value) * (num_buckets - 1)  + 0.5 );
+	return int( (data_value-data_min)/(largest_data_value-data_max) * (num_buckets - 1)  + 0.5 );
 }
 
 int read_data_from_file(std::string filename, std::vector<GLdouble> & buffer) {
@@ -44,7 +46,8 @@ int read_data_from_file(std::string filename, std::vector<GLdouble> & buffer) {
 	std::string line;
 	std::string filepath;
 	int curr_index = 0;
-	
+	GLdouble curr_data_val;
+
 	filepath = DATA_DIRECTORY_PATH + filename;
 	std::cout << "data_filepath: " << filepath << "\n\n";
 	data_file.open(DATA_DIRECTORY_PATH + filename);
@@ -54,13 +57,23 @@ int read_data_from_file(std::string filename, std::vector<GLdouble> & buffer) {
 		buffer.resize(m * n);
 		std::cout << "Reading " << m * n << " data points from file '" << filename << "'" << std::endl;
 		while(getline(data_file, line, ' ')) {
-			buffer[curr_index] = stof(line);
+			curr_data_val = stof(line);
+
+			if(curr_data_val > data_max) {
+				data_max = curr_data_val;
+			} else if(curr_data_val < data_min) {
+				data_min = curr_data_val;
+			}
+			buffer[curr_index] = curr_data_val;
 			curr_index++;
 			if(curr_index >= (m * n) ) {
 				break; // TODO: This is not an elegant way to see if more data is available but recieve invalid memory argument exception without.
 			}
 		}
 		data_file.close();
+		std::cout << "Read " << curr_index << " data points from file." << std::endl;
+		std::cout << "data_max: " << data_max << std::endl;
+		std::cout << "data_min: " << data_min << std::endl;
 	} else {
 	  return 1;
 	}
@@ -238,7 +251,7 @@ int main(int argc, char** argv)
 	// discretize
 	std::vector<int> buckets;
 	for(auto point : data) {
-		buckets.push_back(discretize_data(point, *std::min_element(data.begin(), data.end()), *std::max_element(data.begin(), data.end()), num_buckets));
+		buckets.push_back(discretize_data(point, data_min, data_max, num_buckets));
 	}
 
 	// map buckets to colors: assignment page claims 240 max hue, fn comments say 360
