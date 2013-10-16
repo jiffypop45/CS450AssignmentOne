@@ -158,6 +158,55 @@ keyboard(unsigned char key, int x, int y)
     }
 }
 
+//----------------------------------------------------------------------------
+// the HSV color model will be as follows
+// h : [0 - 360]
+// s : [0 - 1]
+// v : [0 - 1]
+// If you want it differently (in a 2 * pi scale, 256 instead of 1, etc,
+// you'll have to change it yourself.
+// rgb is returned in 0-1 scale (ready for color3f)
+void HSVtoRGB(float hsv[3], float rgb[3]) {
+	float tmp1 = hsv[2] * (1-hsv[1]);
+	float tmp2 = hsv[2] * (1-hsv[1] * (hsv[0] / 60.0f - (int) (hsv[0]/60.0f) ));
+	float tmp3 = hsv[2] * (1-hsv[1] * (1 - (hsv[0] / 60.0f - (int) (hsv[0]/60.0f) )));
+	switch((int)(hsv[0] / 60)) {
+		case 0:
+			rgb[0] = hsv[2] ;
+			rgb[1] = tmp3 ;
+			rgb[2] = tmp1 ;
+			break;
+		case 1:
+			rgb[0] = tmp2 ;
+			rgb[1] = hsv[2] ;
+			rgb[2] = tmp1 ;
+			break;
+		case 2:
+			rgb[0] = tmp1 ;
+			rgb[1] = hsv[2] ;
+			rgb[2] = tmp3 ;
+			break;
+		case 3:
+			rgb[0] = tmp1 ;
+			rgb[1] = tmp2 ;
+			rgb[2] = hsv[2] ;
+			break;
+		case 4:
+			rgb[0] = tmp3 ;
+			rgb[1] = tmp1 ;
+			rgb[2] = hsv[2] ;
+			break;
+		case 5:
+			rgb[0] = hsv[2] ;
+			rgb[1] = tmp1 ;
+			rgb[2] = tmp2 ;
+			break;
+		default:
+			std::cout << "Inconceivable!\n";
+	}
+    
+}
+
 //------------------------------------------------------------------------------
 // This program draws a red rectangle on a white background, but it's still
 // missing the machinery to move to 3D.
@@ -186,17 +235,22 @@ int main(int argc, char** argv)
 	std::cout << "ROW_DIMENSION: '" << m << "'\n";
 	std::cout << "COLUMN_DIMENSION: '" << n << "'\n";
 
-	// discretize and determine colors
+	// discretize
 	std::vector<int> buckets;
 	for(auto point : data) {
 		buckets.push_back(discretize_data(point, *std::min_element(data.begin(), data.end()), *std::max_element(data.begin(), data.end()), num_buckets));
 	}
 
-
-
+	// map buckets to colors
+	std::vector<int> hues(num_buckets, 0);
+	for(int i = 0; i < num_buckets; i++) {
+		hues[i] = i * (240.0f / (num_buckets - 1));
+	}
+	// whatever the function actually is
+	// hsv_to_rgb(hues[i], 1.0, 1.0);
 
 	// graphics setup
-    glutInit(&argc, argv);
+     glutInit(&argc, argv);
 #ifdef __APPLE__
     glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DOUBLE);
 #else
