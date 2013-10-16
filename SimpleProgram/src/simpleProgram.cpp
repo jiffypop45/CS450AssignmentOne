@@ -241,13 +241,21 @@ int main(int argc, char** argv)
 		buckets.push_back(discretize_data(point, *std::min_element(data.begin(), data.end()), *std::max_element(data.begin(), data.end()), num_buckets));
 	}
 
-	// map buckets to colors
-	std::vector<int> hues(num_buckets, 0);
+	// map buckets to colors: assignment page claims 240 max hue, fn comments say 360
+	std::vector<GLfloat> hues(num_buckets, 0);
 	for(int i = 0; i < num_buckets; i++) {
 		hues[i] = i * (240.0f / (num_buckets - 1));
 	}
-	// whatever the function actually is
-	// hsv_to_rgb(hues[i], 1.0, 1.0);
+	
+	// hsv to rgb conversion
+	std::vector<float*> rgbs; // aw yiss vector of arrays. access each bucket rgb by rgbs[bucket][0 through 2]
+	for(auto hue : hues) {
+		rgbs.push_back(new float[3]);
+		float hsv[3];
+		hsv[0] = hue;
+		hsv[1] = hsv[2] = 1.0f;
+		HSVtoRGB(hsv, rgbs[rgbs.size() - 1]);
+	}
 
 	// graphics setup
      glutInit(&argc, argv);
