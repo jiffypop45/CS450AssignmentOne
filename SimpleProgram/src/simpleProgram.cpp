@@ -34,6 +34,11 @@ GLdouble NO_DATA = 0.000000;
 GLdouble data_min = 0.;
 GLdouble data_max = 0.;
 
+struct node {
+	GLdouble position[2];
+	float* rgb;
+	GLdouble data;
+};
 int discretize_data(GLdouble data_value, GLdouble smallest_data_value, GLdouble largest_data_value, GLint num_buckets) {
 	if(data_value == NO_DATA) {
 		return -1;
@@ -41,7 +46,7 @@ int discretize_data(GLdouble data_value, GLdouble smallest_data_value, GLdouble 
 	return int( (data_value-data_min)/(largest_data_value-data_max) * (num_buckets - 1)  + 0.5 );
 }
 
-int read_data_from_file(std::string filename, std::vector<GLdouble> & buffer) {
+int read_data_from_file(std::string filename, std::vector<GLdouble>& buffer) {
 	std::ifstream data_file;
 	std::string line;
 	std::string filepath;
@@ -54,24 +59,20 @@ int read_data_from_file(std::string filename, std::vector<GLdouble> & buffer) {
 	if(data_file.is_open()) {
 		getline(data_file, line);
 		sscanf(line.c_str(), "# %i %i", &m, &n);
-		buffer.resize(m * n);
 		std::cout << "Reading " << m * n << " data points from file '" << filename << "'" << std::endl;
-		while(getline(data_file, line, ' ')) {
-			curr_data_val = stof(line);
-
-			if(curr_data_val > data_max) {
-				data_max = curr_data_val;
-			} else if(curr_data_val < data_min) {
-				data_min = curr_data_val;
-			}
-			buffer[curr_index] = curr_data_val;
-			curr_index++;
-			if(curr_index >= (m * n) ) {
-				break; // TODO: This is not an elegant way to see if more data is available but recieve invalid memory argument exception without.
+		for(int i = 0; i < n; i++) {
+			for(int j = 0; j < m; j++) {
+				if(!getline(data_file, line, ' ')) break;
+				curr_data_val = stof(line);
+				if(curr_data_val > data_max) {
+					data_max = curr_data_val;
+				} else if(curr_data_val < data_min) {
+					data_min = curr_data_val;
+				}
+				buffer.push_back(curr_data_val);
 			}
 		}
 		data_file.close();
-		std::cout << "Read " << curr_index << " data points from file." << std::endl;
 		std::cout << "data_max: " << data_max << std::endl;
 		std::cout << "data_min: " << data_min << std::endl;
 	} else {
@@ -80,7 +81,7 @@ int read_data_from_file(std::string filename, std::vector<GLdouble> & buffer) {
 	return 0;
 }
 //----------------------------------------------------------------------------
-void init(void)
+void init(std::vector<node> vertex_data)
 {
     // Specifiy the vertices for a rectangle.  The first and last vertex are
     // duplicated to close the box.
@@ -95,7 +96,14 @@ void init(void)
     // Create a vertex array object---OpenGL needs this to manage the Vertex
     // Buffer Object
     GLuint vao[1];
+	GLuint my_vao[1];
+	glGenVertexArrays(1, my_vao);
+	glBindVertexArray(my_vao[0]);
 
+	GLuint my_buffer;
+	glGenBuffers(1, &my_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, my_buffer);
+	
     // Generate the vertex array and then bind it to make make it active.
     glGenVertexArrays(1, vao);
     glBindVertexArray(vao[0]);
@@ -103,7 +111,6 @@ void init(void)
     // Create and initialize a buffer object---that's the memory buffer that
     // will be on the card!
     GLuint buffer;
-
     // We only need one for this example.
     glGenBuffers(1, &buffer);
 
@@ -253,8 +260,10 @@ int main(int argc, char** argv)
 	for(auto point : data) {
 		buckets.push_back(discretize_data(point, data_min, data_max, num_buckets));
 	}
-
+	std::cout << "size of buckets: " << buckets.size() << std::endl;
+	std::cout << "size of data: " << data.size() << std::endl;
 	// map buckets to colors: assignment page claims 240 max hue, fn comments say 360
+	// Yes you may travel all the way around the the unit circle that is the hue, but you'll wind up with the same color which is not helpful in data vis :)
 	std::vector<GLfloat> hues(num_buckets, 0);
 	for(int i = 0; i < num_buckets; i++) {
 		hues[i] = i * (240.0f / (num_buckets - 1));
@@ -269,6 +278,47 @@ int main(int argc, char** argv)
 		hsv[1] = hsv[2] = 1.0f;
 		HSVtoRGB(hsv, rgbs[rgbs.size() - 1]);
 	}
+
+	GLdouble X_MAX = 1.;
+	GLdouble Y_MAX = 1.;
+	GLdouble X_MIN = -1.;
+	GLdouble Y_MIN = -1.;
+	node a, b, c, d;
+	GLdouble curr_data_val;
+	float* curr_rgb;
+	std::vector<node> vertex_data;
+	int curr_bucket_val;
+	for(int num_y = 0; num_y < n - 1; num_y++) {
+			for(int num_x = 0; num_x < m - 1; num_x++) {
+				int i = num_y * m + num_x;
+				curr_bucket_val = buckets[i];
+				curr_rgb = rgbs[curr_bucket_val];
+				a.position[0] = X_MIN + (X_MAX - X_MIN) * (GLdouble)num_x / (GLdouble)(n - 1);
+				a.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLdouble)(num_y + 1) / (GLdouble)(m - 1);
+				a.data = curr_data_val;
+				a.rgb = curr_rgb;
+
+				b.position[0] = X_MIN + (X_MAX - X_MIN) * (GLdouble)(num_x + 1)/ (GLdouble)(n - 1);
+				b.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLdouble)(num_y + 1) / (GLdouble)(m - 1);
+				b.data = curr_data_val;
+
+				c.position[0] = X_MIN + (X_MAX - X_MIN) * (GLdouble)(num_x + 1) / (GLdouble)(n - 1);
+				c.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLdouble)(num_y) / (GLdouble)(m - 1);
+				c.data = curr_data_val;
+
+				d.position[0] = X_MIN + (X_MAX - X_MIN) * (GLdouble)num_x / (GLdouble)(n - 1);
+				d.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLdouble)num_y / (GLdouble)(m - 1);
+				d.data = curr_data_val;
+
+				vertex_data.push_back(a);
+				vertex_data.push_back(b);
+				vertex_data.push_back(c);
+
+				vertex_data.push_back(a);
+				vertex_data.push_back(c);
+				vertex_data.push_back(d);
+			}
+		}
 
 	// graphics setup
      glutInit(&argc, argv);
@@ -290,7 +340,7 @@ int main(int argc, char** argv)
 	glewInit();
 #endif
 
-    init();
+    init(vertex_data);
 
     //NOTE:  callbacks must go after window is created!!!
     glutKeyboardFunc(keyboard);
