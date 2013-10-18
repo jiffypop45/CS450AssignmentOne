@@ -23,7 +23,7 @@
 #include <algorithm>
 
 // A global constant for the number of points that will be in our object.
-const int NumPoints = 5;
+const int NumPoints = 127806; // TODO: make this quantity dynamic
 
 // bluuuuuh these are gross and shouldn't be here, let's figure out a better way to do this later
 GLint m = 0;
@@ -36,14 +36,14 @@ GLdouble data_max = 0.;
 
 struct node {
 	GLdouble position[2];
-	float* rgb;
+	GLfloat* rgb;
 	GLdouble data;
 };
 int discretize_data(GLdouble data_value, GLdouble smallest_data_value, GLdouble largest_data_value, GLint num_buckets) {
 	if(data_value == NO_DATA) {
 		return -1;
 	}             
-	return int( (data_value-data_min)/(largest_data_value-data_max) * (num_buckets - 1)  + 0.5 );
+	return int( (data_value-smallest_data_value)/(largest_data_value-smallest_data_value) * (num_buckets - 1)  + 0.5 );
 }
 
 int read_data_from_file(std::string filename, std::vector<GLdouble>& buffer) {
@@ -83,6 +83,15 @@ int read_data_from_file(std::string filename, std::vector<GLdouble>& buffer) {
 //----------------------------------------------------------------------------
 void init(std::vector<node> vertex_data)
 {
+	vertex_data.shrink_to_fit();
+	std::vector<GLdouble*> vertex_vector;
+	std::vector<float*> color_vector;
+	for(auto n : vertex_data) {
+		vertex_vector.push_back(n.position);
+		color_vector.push_back(n.rgb);
+	}
+	vertex_vector.shrink_to_fit();
+	color_vector.shrink_to_fit();
     // Specifiy the vertices for a rectangle.  The first and last vertex are
     // duplicated to close the box.
     vec2 vertices[] = {
@@ -95,33 +104,28 @@ void init(std::vector<node> vertex_data)
 
     // Create a vertex array object---OpenGL needs this to manage the Vertex
     // Buffer Object
-    GLuint vao[1];
-	GLuint my_vao[1];
-	glGenVertexArrays(1, my_vao);
-	glBindVertexArray(my_vao[0]);
-
-	GLuint my_buffer;
-	glGenBuffers(1, &my_buffer);
-	glBindBuffer(GL_ARRAY_BUFFER, my_buffer);
-	
+    GLuint vao;
     // Generate the vertex array and then bind it to make make it active.
-    glGenVertexArrays(1, vao);
-    glBindVertexArray(vao[0]);
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
 
     // Create and initialize a buffer object---that's the memory buffer that
     // will be on the card!
-    GLuint buffer;
+    GLuint buffer[2];
     // We only need one for this example.
-    glGenBuffers(1, &buffer);
+    glGenBuffers(2, buffer);
 
     // Bind makes it the active VBO
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, buffer[0]);
 
     // Here we copy the vertex data into our buffer on the card.  The parameters
     // tell it the type of buffer object, the size of the data in bytes, the
     // pointer for the data itself, and a hint for how we intend to use it.
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
+	glBufferData(GL_ARRAY_BUFFER,  sizeof(vertex_vector), &vertex_vector.front(), GL_STATIC_DRAW);
+	//glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	
+	glBindBuffer(GL_ARRAY_BUFFER, buffer[1]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(color_vector), &color_vector.front(), GL_STATIC_DRAW);
     // Load the shaders.  Note that this function is not offered by OpenGL
     // directly, but provided as a convenience.
     GLuint program = InitShader("../SimpleProgram/src/vshader32.glsl", 
@@ -133,11 +137,10 @@ void init(std::vector<node> vertex_data)
     // Initialize the vertex position attribute from the vertex shader.  When
     // the shader and the program are linked, a table is created for the shader
     // variables.  Here, we get the index of the vPosition variable.
-    GLuint loc = glGetAttribLocation(program, "vPosition");
-
+    glBindBuffer(GL_ARRAY_BUFFER, buffer[0]);
+	GLuint loc = glGetAttribLocation(program, "vPosition");
     // We want to set this with an array!
     glEnableVertexAttribArray(loc);
-
     // We map it to this offset in our current buffer (VBO) So, our position
     // data is going into loc and contains 2 floats.  The parameters to this
     // function are the index for the shader variable, the number of components,
@@ -145,9 +148,13 @@ void init(std::vector<node> vertex_data)
     // normalized (0--1), stride (or byte offset between consective attributes),
     // and a pointer to the first component.  Note that BUFFER_OFFSET is a macro
     // defined in the Angel.h file.
-    glVertexAttribPointer(loc, 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
-
-    // Make the background white
+	glVertexAttribPointer(loc, 2, GL_DOUBLE, GL_FALSE, 0, BUFFER_OFFSET(0));
+	
+	glBindBuffer(GL_ARRAY_BUFFER, buffer[1]);
+	loc = glGetAttribLocation(program, "vColor");
+	glEnableVertexAttribArray(loc);
+	glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+	// Make the background white
     glClearColor(1.0, 1.0, 1.0, 1.0);
 }
 
@@ -160,7 +167,7 @@ display(void)
 
     // Draw the points.  The parameters to the function are: the mode, the first
     // index, and the count.
-    glDrawArrays(GL_LINE_STRIP, 0, NumPoints);
+    glDrawArrays(GL_TRIANGLES, 0, NumPoints-1);
     glFlush();
     glutSwapBuffers();
 }
@@ -278,21 +285,22 @@ int main(int argc, char** argv)
 		hsv[1] = hsv[2] = 1.0f;
 		HSVtoRGB(hsv, rgbs[rgbs.size() - 1]);
 	}
-
+	std::cout << "size of rgbs: " << rgbs.size() << std::endl;
 	GLdouble X_MAX = 1.;
 	GLdouble Y_MAX = 1.;
 	GLdouble X_MIN = -1.;
 	GLdouble Y_MIN = -1.;
 	node a, b, c, d;
 	GLdouble curr_data_val;
-	float* curr_rgb;
+	float *curr_rgb;
 	std::vector<node> vertex_data;
 	int curr_bucket_val;
 	for(int num_y = 0; num_y < n - 1; num_y++) {
 			for(int num_x = 0; num_x < m - 1; num_x++) {
-				int i = num_y * m + num_x;
+				int i = (num_y * m) + num_x;
 				curr_bucket_val = buckets[i];
 				curr_rgb = rgbs[curr_bucket_val];
+				//std::cout << "curr_bucket_val: " << curr_bucket_val << std::endl;
 				a.position[0] = X_MIN + (X_MAX - X_MIN) * (GLdouble)num_x / (GLdouble)(n - 1);
 				a.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLdouble)(num_y + 1) / (GLdouble)(m - 1);
 				a.data = curr_data_val;
@@ -301,25 +309,28 @@ int main(int argc, char** argv)
 				b.position[0] = X_MIN + (X_MAX - X_MIN) * (GLdouble)(num_x + 1)/ (GLdouble)(n - 1);
 				b.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLdouble)(num_y + 1) / (GLdouble)(m - 1);
 				b.data = curr_data_val;
+				b.rgb = curr_rgb;
 
 				c.position[0] = X_MIN + (X_MAX - X_MIN) * (GLdouble)(num_x + 1) / (GLdouble)(n - 1);
 				c.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLdouble)(num_y) / (GLdouble)(m - 1);
 				c.data = curr_data_val;
+				c.rgb = curr_rgb;
 
 				d.position[0] = X_MIN + (X_MAX - X_MIN) * (GLdouble)num_x / (GLdouble)(n - 1);
 				d.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLdouble)num_y / (GLdouble)(m - 1);
 				d.data = curr_data_val;
+				d.rgb = curr_rgb;
 
 				vertex_data.push_back(a);
 				vertex_data.push_back(b);
 				vertex_data.push_back(c);
-
+				
 				vertex_data.push_back(a);
 				vertex_data.push_back(c);
 				vertex_data.push_back(d);
 			}
 		}
-
+	std::cout << "size of vertex_data: " << vertex_data.size() << std::endl;
 	// graphics setup
      glutInit(&argc, argv);
 #ifdef __APPLE__
