@@ -84,25 +84,16 @@ int read_data_from_file(std::string filename, std::vector<GLdouble>& buffer) {
 void init(std::vector<node> vertex_data)
 {
 	vertex_data.shrink_to_fit();
-	float **colors_temp = (float**)malloc(sizeof(float[3]) * vertex_data.size());
-	GLdouble **vertex_temp = (GLdouble**)malloc(sizeof(GLdouble[2]) * vertex_data.size());
+	float *colors_temp = (float*)malloc(sizeof(float[3]) * vertex_data.size());
+	GLdouble *vertex_temp = (GLdouble*)malloc(sizeof(GLdouble[2]) * vertex_data.size());
 
 	for(int i = 0; i < vertex_data.size(); i++) {
-		vertex_temp[i][0] = vertex_data[i].position[0];
-		vertex_temp[i][1] = vertex_data[i].position[1];
-		colors_temp[i][0] = vertex_data[i].rgb[0];
-		colors_temp[i][1] = vertex_data[i].rgb[1];
-		colors_temp[i][2] = vertex_data[i].rgb[2];
+		vertex_temp[i] = vertex_data[i].position[0];
+		vertex_temp[i + 1] = vertex_data[i].position[1];
+		colors_temp[i] = vertex_data[i].rgb[0];
+		colors_temp[i + 1] = vertex_data[i].rgb[1];
+		colors_temp[i + 2] = vertex_data[i].rgb[2];
 	}
-    // Specifiy the vertices for a rectangle.  The first and last vertex are
-    // duplicated to close the box.
-    vec2 vertices[] = {
-        vec2(-0.5, -0.5),
-        vec2(-0.5, 0.5),
-        vec2(0.5, 0.5),
-        vec2(0.5, -0.5),
-        vec2(-0.5, -0.5)
-    };
 
     // Create a vertex array object---OpenGL needs this to manage the Vertex
     // Buffer Object
@@ -296,6 +287,11 @@ int main(int argc, char** argv)
 	GLdouble Y_MIN = -1.;
 	node a, b, c, d;
 	GLdouble curr_data_val;
+	float WHITE_RGB[3];
+	WHITE_RGB[0] = 1.0f;
+	WHITE_RGB[1] = 1.0f;
+	WHITE_RGB[2] = 1.0f;
+
 	float *curr_rgb;
 	std::vector<node> vertex_data;
 	int curr_bucket_val;
@@ -303,7 +299,14 @@ int main(int argc, char** argv)
 			for(int num_x = 0; num_x < m - 1; num_x++) {
 				int i = (num_y * m) + num_x;
 				curr_bucket_val = buckets[i];
-				curr_rgb = rgbs[curr_bucket_val];
+				curr_data_val = data[i];
+
+				if(curr_bucket_val == -1) {
+					curr_rgb = WHITE_RGB;
+				}
+				else {
+					curr_rgb = rgbs[curr_bucket_val];
+				}
 				//std::cout << "curr_rgb: [" << (*curr_rgb)[0] << (*curr_rgb)[1] << (*curr_rgb)[2]
 				//std::cout << "curr_bucket_val: " << curr_bucket_val << std::endl;
 				a.position[0] = X_MIN + (X_MAX - X_MIN) * (GLdouble)num_x / (GLdouble)(n - 1);
