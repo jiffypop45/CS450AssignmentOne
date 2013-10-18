@@ -118,7 +118,7 @@ void init(std::vector<node> vertex_data)
 	//glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	
 	glBindBuffer(GL_ARRAY_BUFFER, buffer[1]);
-	glBufferData(GL_ARRAY_BUFFER,sizeof(float[3]) * vertex_data.size(), colors_temp, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float[3]) * vertex_data.size(), colors_temp, GL_STATIC_DRAW);
     // Load the shaders.  Note that this function is not offered by OpenGL
     // directly, but provided as a convenience.
     GLuint program = InitShader("../SimpleProgram/src/vshader32.glsl", 
