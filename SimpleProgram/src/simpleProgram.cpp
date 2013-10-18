@@ -30,28 +30,28 @@ GLint m = 0;
 GLint n = 0;
 
 std::string DATA_DIRECTORY_PATH = "Data\\";
-GLdouble NO_DATA = 0.000000;
-GLdouble data_min = 0.;
-GLdouble data_max = 0.;
+GLfloat NO_DATA = 0.000000;
+GLfloat data_min = 0.;
+GLfloat data_max = 0.;
 
 struct node {
-	GLdouble position[2];
+	GLfloat position[2];
 	GLfloat *rgb;
-	GLdouble data;
+	GLfloat data;
 };
-int discretize_data(GLdouble data_value, GLdouble smallest_data_value, GLdouble largest_data_value, GLint num_buckets) {
+int discretize_data(GLfloat data_value, GLfloat smallest_data_value, GLfloat largest_data_value, GLint num_buckets) {
 	if(data_value == NO_DATA) {
 		return -1;
 	}             
 	return int( (data_value-smallest_data_value)/(largest_data_value-smallest_data_value) * (num_buckets - 1)  + 0.5 );
 }
 
-int read_data_from_file(std::string filename, std::vector<GLdouble>& buffer) {
+int read_data_from_file(std::string filename, std::vector<GLfloat>& buffer) {
 	std::ifstream data_file;
 	std::string line;
 	std::string filepath;
 	int curr_index = 0;
-	GLdouble curr_data_val;
+	GLfloat curr_data_val;
 
 	filepath = DATA_DIRECTORY_PATH + filename;
 	std::cout << "data_filepath: " << filepath << "\n\n";
@@ -85,7 +85,7 @@ void init(std::vector<node> vertex_data)
 {
 	vertex_data.shrink_to_fit();
 	float *colors_temp = (float*)malloc(sizeof(float[3]) * vertex_data.size());
-	GLdouble *vertex_temp = (GLdouble*)malloc(sizeof(GLdouble[2]) * vertex_data.size());
+	GLfloat *vertex_temp = (GLfloat*)malloc(sizeof(GLfloat[2]) * vertex_data.size());
 
 	for(int i = 0; i < vertex_data.size(); i++) {
 		vertex_temp[i] = vertex_data[i].position[0];
@@ -114,7 +114,7 @@ void init(std::vector<node> vertex_data)
     // Here we copy the vertex data into our buffer on the card.  The parameters
     // tell it the type of buffer object, the size of the data in bytes, the
     // pointer for the data itself, and a hint for how we intend to use it.
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLdouble[2]) * vertex_data.size(), vertex_temp, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat[2]) * vertex_data.size(), vertex_temp, GL_STATIC_DRAW);
 	//glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	
 	glBindBuffer(GL_ARRAY_BUFFER, buffer[1]);
@@ -141,7 +141,7 @@ void init(std::vector<node> vertex_data)
     // normalized (0--1), stride (or byte offset between consective attributes),
     // and a pointer to the first component.  Note that BUFFER_OFFSET is a macro
     // defined in the Angel.h file.
-	glVertexAttribPointer(loc, 2, GL_DOUBLE, GL_FALSE, 0, BUFFER_OFFSET(0));
+	glVertexAttribPointer(loc, 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 	
 	glBindBuffer(GL_ARRAY_BUFFER, buffer[1]);
 	loc = glGetAttribLocation(program, "vColor");
@@ -160,8 +160,6 @@ display(void)
 
     // Draw the points.  The parameters to the function are: the mode, the first
     // index, and the count.
-    glDrawArrays(GL_TRIANGLES, 0, NumPoints-1);
-
     glDrawArrays(GL_TRIANGLES, 0, NumPoints-1);
     glFlush();
     glutSwapBuffers();
@@ -229,9 +227,7 @@ void HSVtoRGB(float hsv[3], float rgb[3]) {
     
 }
 
-//------------------------------------------------------------------------------
-// This program draws a red rectangle on a white background, but it's still
-// missing the machinery to move to 3D.
+
 int main(int argc, char** argv)
 {
 	// data input
@@ -246,7 +242,7 @@ int main(int argc, char** argv)
 	}
 	std::string data_filename = argv[1];
 	
-	std::vector<GLdouble> data;
+	std::vector<GLfloat> data;
 
 	int data_read_status = read_data_from_file(data_filename, data);
 	if(data_read_status) {
@@ -281,12 +277,12 @@ int main(int argc, char** argv)
 		HSVtoRGB(hsv, rgbs[rgbs.size() - 1]);
 	}
 	std::cout << "size of rgbs: " << rgbs.size() << std::endl;
-	GLdouble X_MAX = 1.;
-	GLdouble Y_MAX = 1.;
-	GLdouble X_MIN = -1.;
-	GLdouble Y_MIN = -1.;
+	GLfloat X_MAX = 1.;
+	GLfloat Y_MAX = 1.;
+	GLfloat X_MIN = -1.;
+	GLfloat Y_MIN = -1.;
 	node a, b, c, d;
-	GLdouble curr_data_val;
+	GLfloat curr_data_val;
 	float WHITE_RGB[3];
 	WHITE_RGB[0] = 1.0f;
 	WHITE_RGB[1] = 1.0f;
@@ -309,23 +305,23 @@ int main(int argc, char** argv)
 				}
 				//std::cout << "curr_rgb: [" << (*curr_rgb)[0] << (*curr_rgb)[1] << (*curr_rgb)[2]
 				//std::cout << "curr_bucket_val: " << curr_bucket_val << std::endl;
-				a.position[0] = X_MIN + (X_MAX - X_MIN) * (GLdouble)num_x / (GLdouble)(n - 1);
-				a.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLdouble)(num_y + 1) / (GLdouble)(m - 1);
+				a.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_x / (GLfloat)(n - 1);
+				a.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y + 1) / (GLfloat)(m - 1);
 				a.data = curr_data_val;
 				a.rgb = curr_rgb;
 				
-				b.position[0] = X_MIN + (X_MAX - X_MIN) * (GLdouble)(num_x + 1)/ (GLdouble)(n - 1);
-				b.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLdouble)(num_y + 1) / (GLdouble)(m - 1);
+				b.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)(num_x + 1)/ (GLfloat)(n - 1);
+				b.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y + 1) / (GLfloat)(m - 1);
 				b.data = curr_data_val;
 				b.rgb = curr_rgb;
 				
-				c.position[0] = X_MIN + (X_MAX - X_MIN) * (GLdouble)(num_x + 1) / (GLdouble)(n - 1);
-				c.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLdouble)(num_y) / (GLdouble)(m - 1);
+				c.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)(num_x + 1) / (GLfloat)(n - 1);
+				c.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y) / (GLfloat)(m - 1);
 				c.data = curr_data_val;
 				c.rgb = curr_rgb;
 				
-				d.position[0] = X_MIN + (X_MAX - X_MIN) * (GLdouble)num_x / (GLdouble)(n - 1);
-				d.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLdouble)num_y / (GLdouble)(m - 1);
+				d.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_x / (GLfloat)(n - 1);
+				d.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)num_y / (GLfloat)(m - 1);
 				d.data = curr_data_val;
 				d.rgb = curr_rgb;
 
