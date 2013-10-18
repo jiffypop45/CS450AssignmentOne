@@ -160,7 +160,7 @@ display(void)
 
     // Draw the points.  The parameters to the function are: the mode, the first
     // index, and the count.
-    glDrawArrays(GL_TRIANGLES, 0, NumPoints-1);
+    glDrawArrays(GL_TRIANGLES, 0, NumPoints);
     glFlush();
     glutSwapBuffers();
 }
