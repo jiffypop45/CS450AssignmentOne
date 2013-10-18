@@ -36,7 +36,7 @@ GLdouble data_max = 0.;
 
 struct node {
 	GLdouble position[2];
-	GLfloat* rgb;
+	GLfloat *rgb;
 	GLdouble data;
 };
 int discretize_data(GLdouble data_value, GLdouble smallest_data_value, GLdouble largest_data_value, GLint num_buckets) {
@@ -84,14 +84,16 @@ int read_data_from_file(std::string filename, std::vector<GLdouble>& buffer) {
 void init(std::vector<node> vertex_data)
 {
 	vertex_data.shrink_to_fit();
-	std::vector<GLdouble*> vertex_vector;
-	std::vector<float*> color_vector;
-	for(auto n : vertex_data) {
-		vertex_vector.push_back(n.position);
-		color_vector.push_back(n.rgb);
+	float **colors_temp = (float**)malloc(sizeof(float[3]) * vertex_data.size());
+	GLdouble **vertex_temp = (GLdouble**)malloc(sizeof(GLdouble[2]) * vertex_data.size());
+
+	for(int i = 0; i < vertex_data.size(); i++) {
+		vertex_temp[i][0] = vertex_data[i].position[0];
+		vertex_temp[i][1] = vertex_data[i].position[1];
+		colors_temp[i][0] = vertex_data[i].rgb[0];
+		colors_temp[i][1] = vertex_data[i].rgb[1];
+		colors_temp[i][2] = vertex_data[i].rgb[2];
 	}
-	vertex_vector.shrink_to_fit();
-	color_vector.shrink_to_fit();
     // Specifiy the vertices for a rectangle.  The first and last vertex are
     // duplicated to close the box.
     vec2 vertices[] = {
@@ -121,11 +123,11 @@ void init(std::vector<node> vertex_data)
     // Here we copy the vertex data into our buffer on the card.  The parameters
     // tell it the type of buffer object, the size of the data in bytes, the
     // pointer for the data itself, and a hint for how we intend to use it.
-	glBufferData(GL_ARRAY_BUFFER,  sizeof(vertex_vector), &vertex_vector.front(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLdouble[2]) * vertex_data.size(), vertex_temp, GL_STATIC_DRAW);
 	//glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	
 	glBindBuffer(GL_ARRAY_BUFFER, buffer[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(color_vector), &color_vector.front(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER,sizeof(float[3]) * vertex_data.size(), colors_temp, GL_STATIC_DRAW);
     // Load the shaders.  Note that this function is not offered by OpenGL
     // directly, but provided as a convenience.
     GLuint program = InitShader("../SimpleProgram/src/vshader32.glsl", 
@@ -167,6 +169,8 @@ display(void)
 
     // Draw the points.  The parameters to the function are: the mode, the first
     // index, and the count.
+    glDrawArrays(GL_TRIANGLES, 0, NumPoints-1);
+
     glDrawArrays(GL_TRIANGLES, 0, NumPoints-1);
     glFlush();
     glutSwapBuffers();
@@ -300,22 +304,23 @@ int main(int argc, char** argv)
 				int i = (num_y * m) + num_x;
 				curr_bucket_val = buckets[i];
 				curr_rgb = rgbs[curr_bucket_val];
+				//std::cout << "curr_rgb: [" << (*curr_rgb)[0] << (*curr_rgb)[1] << (*curr_rgb)[2]
 				//std::cout << "curr_bucket_val: " << curr_bucket_val << std::endl;
 				a.position[0] = X_MIN + (X_MAX - X_MIN) * (GLdouble)num_x / (GLdouble)(n - 1);
 				a.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLdouble)(num_y + 1) / (GLdouble)(m - 1);
 				a.data = curr_data_val;
 				a.rgb = curr_rgb;
-
+				
 				b.position[0] = X_MIN + (X_MAX - X_MIN) * (GLdouble)(num_x + 1)/ (GLdouble)(n - 1);
 				b.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLdouble)(num_y + 1) / (GLdouble)(m - 1);
 				b.data = curr_data_val;
 				b.rgb = curr_rgb;
-
+				
 				c.position[0] = X_MIN + (X_MAX - X_MIN) * (GLdouble)(num_x + 1) / (GLdouble)(n - 1);
 				c.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLdouble)(num_y) / (GLdouble)(m - 1);
 				c.data = curr_data_val;
 				c.rgb = curr_rgb;
-
+				
 				d.position[0] = X_MIN + (X_MAX - X_MIN) * (GLdouble)num_x / (GLdouble)(n - 1);
 				d.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLdouble)num_y / (GLdouble)(m - 1);
 				d.data = curr_data_val;
