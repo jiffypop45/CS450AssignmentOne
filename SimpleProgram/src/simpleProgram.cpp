@@ -21,18 +21,18 @@
 #include <sstream>
 #include <vector>
 
+// global so that we can bind in display()
 GLuint vao[2];
 
 // input data dimensions
-
+// global so that we know the size of everything
 GLint m = 0;
 GLint n = 0;
-
-std::string DATA_DIRECTORY_PATH = "Data\\";
-GLfloat NO_DATA = 0.000000;
-GLfloat data_min = 0.;
-GLfloat data_max = 0.;
 GLint num_contours = 0;
+
+// global 
+const std::string DATA_DIRECTORY_PATH = "Data\\";
+const GLfloat NO_DATA = 0.000000;
 
 struct node {
 	GLfloat position[2];
@@ -48,7 +48,7 @@ int discretize_data(GLfloat data_value, GLfloat smallest_data_value, GLfloat lar
 }
 
 // returns whether file was read
-bool read_data_from_file(std::string filename, std::vector<GLfloat>& buffer) {
+bool read_data_from_file(std::string filename, std::vector<GLfloat>& buffer, float & data_min, float & data_max) {
 	std::ifstream data_file;
 	std::string line;
 	std::string filepath;
@@ -78,7 +78,8 @@ bool read_data_from_file(std::string filename, std::vector<GLfloat>& buffer) {
 	}
 	return true;
 }
-//----------------------------------------------------------------------------
+
+// setup openGL
 void init(std::vector<node> vertex_data, std::vector<GLfloat> contours)
 {
 	vertex_data.shrink_to_fit();
@@ -163,7 +164,7 @@ void init(std::vector<node> vertex_data, std::vector<GLfloat> contours)
     glClearColor(1.0, 1.0, 1.0, 1.0);
 }
 
-//----------------------------------------------------------------------------
+// drawing process. draws vaos for data & contour lines
 void
 display(void)
 {
@@ -243,6 +244,7 @@ void HSVtoRGB(float hsv[3], float rgb[3]) {
     
 }
 
+// takes in the data point coordinates, outputs a location for OpenGL to use
 std::pair<GLfloat, GLfloat> calc_xy(int x_in, int y_in) 
 {
 	const GLfloat X_MAX = .95;
@@ -256,7 +258,8 @@ std::pair<GLfloat, GLfloat> calc_xy(int x_in, int y_in)
 	return xypair;
 }
 
-std::vector<node> calc_vertices(std::vector<int> buckets, std::vector<GLfloat> data, std::vector<float*> rgbs)
+// calculates vertex locations and colors based on buckets and bucket colors
+std::vector<node> calc_vertices(std::vector<int> buckets, std::vector<float*> rgbs)
 {
 	node a, b, c, d;
 	float *curr_rgb;
@@ -272,7 +275,6 @@ std::vector<node> calc_vertices(std::vector<int> buckets, std::vector<GLfloat> d
 		for(int num_x = 0; num_x < m - 1; num_x++) {
 			int i = (num_y * m) + num_x;
 			curr_bucket_val = buckets[i];
-			curr_data_val = data[i];
 
 			// account for no data areas, which should stay white
 			if(curr_bucket_val == -1) {
@@ -315,6 +317,7 @@ std::vector<node> calc_vertices(std::vector<int> buckets, std::vector<GLfloat> d
 	return vertex_data;
 }
 
+// calculates contour line locations based on buckets, brute force style
 std::vector<GLfloat> calc_contours(std::vector<int> buckets)
 {
 	std::pair<GLfloat, GLfloat> xy1, xy2;
@@ -373,7 +376,8 @@ int main(int argc, char** argv)
 	
 	// file IO
 	std::vector<GLfloat> data;
-	int data_read_status = read_data_from_file(data_filename, data);
+	GLfloat data_min = 0, data_max = 0;
+	int data_read_status = read_data_from_file(data_filename, data, data_min, data_max);
 	if(data_read_status == false) {
 		std::cerr << "Error: Failed to read data file '" << data_filename << "'" << std::endl;
 		std::cerr << "File must be in ./Data directory" << std::endl;
@@ -401,16 +405,8 @@ int main(int argc, char** argv)
 		HSVtoRGB(hsv, rgbs[rgbs.size() - 1]);
 	}
 
-	auto vertex_data = calc_vertices(buckets, data, rgbs);
+	auto vertex_data = calc_vertices(buckets, rgbs);
 	auto contours = calc_contours(buckets);
-	
-	
-/*	March through your data left to right
-Test each grid temperature value against that of it's neighbors
-If they are the same (after discretization!!!), then do nothing
-      else, draw a line separating the two grid squares.
-Do the same in the vertical dimension as well*/	
-	std::cout << "size of vertex_data: " << vertex_data.size() << std::endl;
 
 	// graphics setup
      glutInit(&argc, argv);
