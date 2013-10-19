@@ -36,9 +36,10 @@ GLfloat data_max = 0.;
 
 struct node {
 	GLfloat position[2];
-	GLfloat rgb[3];
-	GLfloat data;
+	GLfloat *rgb;
 };
+
+// returns the bucket number from 1 to num_buckets
 int discretize_data(GLfloat data_value, GLfloat smallest_data_value, GLfloat largest_data_value, GLint num_buckets) {
 	if(data_value == NO_DATA) {
 		return -1;
@@ -46,7 +47,8 @@ int discretize_data(GLfloat data_value, GLfloat smallest_data_value, GLfloat lar
 	return int( (data_value-smallest_data_value)/(largest_data_value-smallest_data_value) * (num_buckets - 1)  + 0.5 );
 }
 
-int read_data_from_file(std::string filename, std::vector<GLfloat>& buffer) {
+// returns whether file was read
+bool read_data_from_file(std::string filename, std::vector<GLfloat>& buffer) {
 	std::ifstream data_file;
 	std::string line;
 	std::string filepath;
@@ -54,7 +56,6 @@ int read_data_from_file(std::string filename, std::vector<GLfloat>& buffer) {
 	GLfloat curr_data_val;
 
 	filepath = DATA_DIRECTORY_PATH + filename;
-	std::cout << "data_filepath: " << filepath << "\n\n";
 	data_file.open(DATA_DIRECTORY_PATH + filename);
 	if(data_file.is_open()) {
 		getline(data_file, line);
@@ -76,9 +77,9 @@ int read_data_from_file(std::string filename, std::vector<GLfloat>& buffer) {
 		std::cout << "data_max: " << data_max << std::endl;
 		std::cout << "data_min: " << data_min << std::endl;
 	} else {
-	  return 1;
+	  return false;
 	}
-	return 0;
+	return true;
 }
 //----------------------------------------------------------------------------
 void init(std::vector<node> vertex_data)
@@ -238,24 +239,25 @@ int main(int argc, char** argv)
 	GLint num_buckets = 20; // default value
 	if(argc < 2) {
 		std::cerr << "\n\nUsage: " << argv[0] << "DATA_FILENAME" << " NUM_BUCKETS" << std::endl;
+		std::cerr << "File must be in ./Data directory" << std::endl;
 		std::cerr << "Default NUM_BUCKETS value is 20" << std::endl;
 		return 1;
 	}
+
+	// params
 	if(argc == 3) {
 		num_buckets = atoi(argv[2]);
 	}
 	std::string data_filename = argv[1];
 	
+	// file IO
 	std::vector<GLfloat> data;
-
 	int data_read_status = read_data_from_file(data_filename, data);
-	if(data_read_status) {
-		std::cerr << "\n\nError: Attempted to read data file '" << data_filename << "'" << std::endl;
+	if(data_read_status == false) {
+		std::cerr << "Error: Failed to read data file '" << data_filename << "'" << std::endl;
+		std::cerr << "File must be in ./Data directory" << std::endl;
 		return 1;
 	}
-	std::cout << "DATA_FILENAME: '" << data_filename << "'\n";
-	std::cout << "ROW_DIMENSION: '" << m << "'\n";
-	std::cout << "COLUMN_DIMENSION: '" << n << "'\n";
 
 	// discretize
 	std::vector<int> buckets;
@@ -264,11 +266,10 @@ int main(int argc, char** argv)
 	}
 	std::cout << "size of buckets: " << buckets.size() << std::endl;
 	std::cout << "size of data: " << data.size() << std::endl;
-	// map buckets to colors: assignment page claims 240 max hue, fn comments say 360
-	// Yes you may travel all the way around the the unit circle that is the hue, but you'll wind up with the same color which is not helpful in data vis :)
+
 	std::vector<GLfloat> hues(num_buckets, 0);
 	for(int i = 0; i < num_buckets; i++) {
-		hues[i] = i * (240.0f / (num_buckets - 1));
+		hues[i] = (num_buckets - i - 1) * (240.0f / (num_buckets - 1));
 	}
 	
 	// hsv to rgb conversion
@@ -279,22 +280,18 @@ int main(int argc, char** argv)
 		hsv[0] = hue;
 		hsv[1] = hsv[2] = 1.0f;
 		HSVtoRGB(hsv, rgbs[rgbs.size() - 1]);
-		std::cout << "hsv values: " << hsv[0] << " " << hsv[1] << " " << hsv[2] << "\n";
-		std::cout << "rgb values: " << rgbs[rgbs.size() - 1][0] << " " << rgbs[rgbs.size() - 1][1] << " " << rgbs[rgbs.size() - 1][2] << "\n";
 	}
-	std::cout << "size of rgbs: " << rgbs.size() << std::endl;
 
-
+	const GLfloat X_MAX = .95;
+	const GLfloat Y_MAX = .95;
+	const GLfloat X_MIN = -.95;
+	const GLfloat Y_MIN = -.95;
 	node a, b, c, d;
 	GLfloat curr_data_val;
 	float WHITE_RGB[3];
 	WHITE_RGB[0] = 1.0f;
 	WHITE_RGB[1] = 1.0f;
 	WHITE_RGB[2] = 1.0f;
-	GLfloat X_MAX = 1.;
-	GLfloat Y_MAX = 1.;
-	GLfloat X_MIN = -1.;
-	GLfloat Y_MIN = -1.;
 	float *curr_rgb;
 	std::vector<node> vertex_data;
 	int curr_bucket_val;
@@ -307,55 +304,43 @@ int main(int argc, char** argv)
 	};
 
 	for(int num_y = 0; num_y < n - 1; num_y++) {
-			for(int num_x = 0; num_x < m - 1; num_x++) {
-				int i = (num_y * m) + num_x;
-				curr_bucket_val = buckets[i];
-				curr_data_val = data[i];
+		for(int num_x = 0; num_x < m - 1; num_x++) {
+			int i = (num_y * m) + num_x;
+			curr_bucket_val = buckets[i];
+			curr_data_val = data[i];
 
-				if(curr_bucket_val == -1) {
-					curr_rgb = WHITE_RGB;
-				}
-				else {
-					curr_rgb = rgbs[curr_bucket_val];
-				}
-				//std::cout << "curr_rgb: [" << (*curr_rgb)[0] << (*curr_rgb)[1] << (*curr_rgb)[2]
-				//std::cout << "curr_bucket_val: " << curr_bucket_val << std::endl;
-				a.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_x / (GLfloat)(n - 1);
-				a.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y + 1) / (GLfloat)(m - 1);
-				a.data = curr_data_val;
-				a.rgb[0] = curr_rgb[0];
-				a.rgb[1] = curr_rgb[1];
-				a.rgb[2] = curr_rgb[2];
-				
-				b.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)(num_x + 1)/ (GLfloat)(n - 1);
-				b.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y + 1) / (GLfloat)(m - 1);
-				b.data = curr_data_val;
-				b.rgb[0] = curr_rgb[0];
-				b.rgb[1] = curr_rgb[1];
-				b.rgb[2] = curr_rgb[2];
-				
-				c.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)(num_x + 1) / (GLfloat)(n - 1);
-				c.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y) / (GLfloat)(m - 1);
-				c.data = curr_data_val;
-				c.rgb[0] = curr_rgb[0];
-				c.rgb[1] = curr_rgb[1];
-				c.rgb[2] = curr_rgb[2];
-				
-				d.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_x / (GLfloat)(n - 1);
-				d.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)num_y / (GLfloat)(m - 1);
-				d.data = curr_data_val;
-				d.rgb[0] = curr_rgb[0];
-				d.rgb[1] = curr_rgb[1];
-				d.rgb[2] = curr_rgb[2];
-
-				vertex_data.push_back(a);
-				vertex_data.push_back(b);
-				vertex_data.push_back(c);
-				
-				vertex_data.push_back(a);
-				vertex_data.push_back(c);
-				vertex_data.push_back(d);
+			// account for no data areas, which should stay white
+			if(curr_bucket_val == -1) {
+				curr_rgb = WHITE_RGB;
 			}
+			else {
+				curr_rgb = rgbs[curr_bucket_val];
+			}
+
+			// figure out screen location based on xy coords
+			a.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_x / (GLfloat)(m - 1);
+			a.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y + 1) / (GLfloat)(n - 1);
+			a.rgb = curr_rgb;
+				
+			b.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)(num_x + 1)/ (GLfloat)(m - 1);
+			b.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y + 1) / (GLfloat)(n - 1);
+			b.rgb = curr_rgb;
+				
+			c.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)(num_x + 1) / (GLfloat)(m - 1);
+			c.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y) / (GLfloat)(n - 1);
+			c.rgb = curr_rgb;
+				
+			d.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_x / (GLfloat)(m - 1);
+			d.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)num_y / (GLfloat)(n - 1);
+			d.rgb = curr_rgb;
+
+			vertex_data.push_back(a);
+			vertex_data.push_back(b);
+			vertex_data.push_back(c);
+				
+			vertex_data.push_back(a);
+			vertex_data.push_back(c);
+			vertex_data.push_back(d);
 		}
 		for(int num_y = 0; num_y < n - 1; num_y++) {
 			for(int num_x = 0; num_x < m - 1; num_x++) {
@@ -374,6 +359,7 @@ int main(int argc, char** argv)
 				}
 
 			}
+		}
 	}
 /*	March through your data left to right
 Test each grid temperature value against that of it's neighbors
@@ -381,6 +367,7 @@ If they are the same (after discretization!!!), then do nothing
       else, draw a line separating the two grid squares.
 Do the same in the vertical dimension as well*/	
 	std::cout << "size of vertex_data: " << vertex_data.size() << std::endl;
+
 	// graphics setup
      glutInit(&argc, argv);
 #ifdef __APPLE__
@@ -390,7 +377,7 @@ Do the same in the vertical dimension as well*/
     glutInitContextVersion (3, 2);
     glutInitContextFlags (GLUT_FORWARD_COMPATIBLE);
 #endif
-    glutInitWindowSize(768, 768);
+    glutInitWindowSize(768 * m / max(m, n), 768 * n / max(m, n));
     glutInitWindowPosition(100, 100);
 	glutCreateWindow(data_filename.c_str());
     printf("%s\n%s\n", glGetString(GL_RENDERER), glGetString(GL_VERSION));
