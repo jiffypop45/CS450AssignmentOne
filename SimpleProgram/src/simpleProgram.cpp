@@ -265,11 +265,10 @@ int main(int argc, char** argv)
 	}
 	std::cout << "size of buckets: " << buckets.size() << std::endl;
 	std::cout << "size of data: " << data.size() << std::endl;
-	// map buckets to colors: assignment page claims 240 max hue, fn comments say 360
-	// Yes you may travel all the way around the the unit circle that is the hue, but you'll wind up with the same color which is not helpful in data vis :)
+
 	std::vector<GLfloat> hues(num_buckets, 0);
 	for(int i = 0; i < num_buckets; i++) {
-		hues[i] = i * (240.0f / (num_buckets - 1));
+		hues[i] = (num_buckets - i - 1) * (240.0f / (num_buckets - 1));
 	}
 	
 	// hsv to rgb conversion
