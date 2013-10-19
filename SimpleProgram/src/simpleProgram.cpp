@@ -22,6 +22,7 @@
 #include <vector>
 #include <algorithm>
 
+GLuint vao[2];
 // A global constant for the number of points that will be in our object.
 const int NumPoints = 127806; // TODO: make this quantity dynamic
 
@@ -33,6 +34,7 @@ std::string DATA_DIRECTORY_PATH = "Data\\";
 GLfloat NO_DATA = 0.000000;
 GLfloat data_min = 0.;
 GLfloat data_max = 0.;
+GLint num_contours = 0;
 
 struct node {
 	GLfloat position[2];
@@ -82,12 +84,12 @@ bool read_data_from_file(std::string filename, std::vector<GLfloat>& buffer) {
 	return true;
 }
 //----------------------------------------------------------------------------
-void init(std::vector<node> vertex_data)
+void init(std::vector<node> vertex_data, std::vector<GLfloat> contours)
 {
 	vertex_data.shrink_to_fit();
 	float *colors_temp = (float*)malloc(sizeof(float[3]) * vertex_data.size());
 	GLfloat *vertex_temp = (GLfloat*)malloc(sizeof(GLfloat[2]) * vertex_data.size());
-
+	
 	for(int i = 0; i < vertex_data.size(); i++) {
 		vertex_temp[2 * i] = vertex_data[i].position[0];
 		vertex_temp[2 * i + 1] = vertex_data[i].position[1];
@@ -96,23 +98,22 @@ void init(std::vector<node> vertex_data)
 		colors_temp[3 * i + 2] = vertex_data[i].rgb[2];
 	}
 
-	
+	std::vector<GLfloat> contour_colors(num_contours * 6, 0.);
 	/*for(int i = 0; i < vertex_data.size(); i++) {
 		std::cout << "x: " << vertex_temp[2*i] << " y: " << vertex_temp[2*i+1] << " r: " << colors_temp[3*i] << " g: " << colors_temp[3*i + 1] << " b: " << colors_temp[3*i + 2] << "\n";
 	}*/
 
     // Create a vertex array object---OpenGL needs this to manage the Vertex
     // Buffer Object
-    GLuint vao;
     // Generate the vertex array and then bind it to make make it active.
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    glGenVertexArrays(2, vao);
+    glBindVertexArray(vao[0]);
 
     // Create and initialize a buffer object---that's the memory buffer that
     // will be on the card!
-    GLuint buffer[2];
+    GLuint buffer[3];
     // We only need one for this example.
-    glGenBuffers(2, buffer);
+    glGenBuffers(4, buffer);
 
     // Bind makes it the active VBO
     glBindBuffer(GL_ARRAY_BUFFER, buffer[0]);
@@ -154,6 +155,19 @@ void init(std::vector<node> vertex_data)
 	glEnableVertexAttribArray(loc);
 	glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 	// Make the background white
+
+	glBindVertexArray(vao[1]);
+	glBindBuffer(GL_ARRAY_BUFFER, buffer[2]);
+	loc = glGetAttribLocation(program, "vPosition");
+	glEnableVertexAttribArray(loc);
+	glVertexAttribPointer(loc, 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+
+	glBindBuffer(GL_ARRAY_BUFFER, buffer[3]);
+	glBufferData(GL_ARRAY_BUFFER, contour_colors.size() * sizeof(GLfloat), contour_colors.data(), GL_STATIC_DRAW);
+	loc = glGetAttribLocation(program, "vColor");
+	glEnableVertexAttribArray(loc);
+	glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+
     glClearColor(1.0, 1.0, 1.0, 1.0);
 }
 
@@ -166,7 +180,11 @@ display(void)
 
     // Draw the points.  The parameters to the function are: the mode, the first
     // index, and the count.
+	glBindVertexArray(vao[0]);
     glDrawArrays(GL_TRIANGLES, 0, NumPoints);
+
+	glBindVertexArray(vao[1]);
+	glDrawArrays(GL_LINES, 0, num_contours * 2);
     glFlush();
     glutSwapBuffers();
 }
@@ -299,7 +317,7 @@ int main(int argc, char** argv)
 	auto index_to_xy = [X_MIN, X_MAX, Y_MIN, Y_MAX] (int num_x, int num_y) {
 		std::pair<GLfloat, GLfloat> xypair;
 		xypair.first = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_x / (GLfloat)(m - 1);
-		xypair.second = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_y / (GLfloat)(n - 1);
+		xypair.second = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)num_y / (GLfloat)(n - 1);
 		return xypair;
 	};
 
@@ -318,18 +336,22 @@ int main(int argc, char** argv)
 			}
 
 			// figure out screen location based on xy coords
-			a.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_x / (GLfloat)(m - 1);
-			a.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y + 1) / (GLfloat)(n - 1);
+			std::pair<GLfloat, GLfloat> temp_xy = index_to_xy(num_x, num_y + 1);
+			a.position[0] = temp_xy.first;
+			a.position[1] = temp_xy.second;
 			a.rgb = curr_rgb;
 				
+			temp_xy = index_to_xy(num_x + 1, num_y + 1);
 			b.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)(num_x + 1)/ (GLfloat)(m - 1);
 			b.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y + 1) / (GLfloat)(n - 1);
 			b.rgb = curr_rgb;
 				
+			temp_xy = index_to_xy(num_x + 1, num_y);
 			c.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)(num_x + 1) / (GLfloat)(m - 1);
 			c.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y) / (GLfloat)(n - 1);
 			c.rgb = curr_rgb;
 				
+			temp_xy = index_to_xy(num_x, num_y);
 			d.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_x / (GLfloat)(m - 1);
 			d.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)num_y / (GLfloat)(n - 1);
 			d.rgb = curr_rgb;
@@ -342,23 +364,36 @@ int main(int argc, char** argv)
 			vertex_data.push_back(c);
 			vertex_data.push_back(d);
 		}
-		for(int num_y = 0; num_y < n - 1; num_y++) {
-			for(int num_x = 0; num_x < m - 1; num_x++) {
-				int curr_bucket_val = buckets[num_y * n + num_x];
-				int neighbor_x_data = buckets[num_y*n + (num_x + 1)];
-				int neighbor_y_data = buckets[(num_y + 1) * n + num_x];
+	}
+	std::pair<GLfloat, GLfloat> xy1, xy2;
+	std::vector<GLfloat> contours;
+	std::vector<GLfloat> contours_rgb;
+	for(int num_y = 0; num_y < n - 1; num_y++) {
+		for(int num_x = 0; num_x < m - 1; num_x++) {
+			int curr_bucket_val = buckets[num_y * n + num_x];
+			int neighbor_x_data = buckets[num_y*n + (num_x + 1)];
+			int neighbor_y_data = buckets[(num_y + 1) * n + num_x];
 
-				if(curr_bucket_val != neighbor_x_data) {
-					//do stuff
-					std::pair<GLfloat, GLfloat> xy1 = index_to_xy(num_x, num_y);
-					std::pair<GLfloat, GLfloat> xy2 = index_to_xy((num_x + 1), num_y*n);
-				} else if(curr_bucket_val != neighbor_y_data) {
-					// do other stuff
-					std::pair<GLfloat, GLfloat> xy1 = index_to_xy(num_x, num_y);
-					std::pair<GLfloat, GLfloat> xy2 = index_to_xy(num_x, (num_y + 1)*n);
-				}
-
+			if(curr_bucket_val != neighbor_x_data) {
+				//do stuff
+				xy1 = index_to_xy(num_x + 1, num_y + 1);
+				xy2 = index_to_xy((num_x + 1), num_y*n);
+				contours.push_back(xy1.first);
+				contours.push_back(xy1.second);
+				contours.push_back(xy2.first);
+				contours.push_back(xy2.second);
+				num_contours++;
+			} else if(curr_bucket_val != neighbor_y_data) {
+				// do other stuff
+				xy1 = index_to_xy(num_x, num_y);
+				xy2 = index_to_xy(num_x, (num_y + 1)*n);
+				contours.push_back(xy1.first);
+				contours.push_back(xy1.second);
+				contours.push_back(xy2.first);
+				contours.push_back(xy2.second);
+				num_contours++;
 			}
+
 		}
 	}
 /*	March through your data left to right
@@ -388,7 +423,7 @@ Do the same in the vertical dimension as well*/
 	glewInit();
 #endif
 
-    init(vertex_data);
+    init(vertex_data, contours);
 
     //NOTE:  callbacks must go after window is created!!!
     glutKeyboardFunc(keyboard);
