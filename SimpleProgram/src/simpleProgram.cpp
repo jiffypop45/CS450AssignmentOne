@@ -37,7 +37,6 @@ GLfloat data_max = 0.;
 struct node {
 	GLfloat position[2];
 	GLfloat *rgb;
-	GLfloat data;
 };
 int discretize_data(GLfloat data_value, GLfloat smallest_data_value, GLfloat largest_data_value, GLint num_buckets) {
 	if(data_value == NO_DATA) {
@@ -309,24 +308,21 @@ int main(int argc, char** argv)
 				curr_rgb = rgbs[curr_bucket_val];
 			}
 
+			// figure out screen location based on xy coords
 			a.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_x / (GLfloat)(m - 1);
 			a.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y + 1) / (GLfloat)(n - 1);
-			a.data = curr_data_val;
 			a.rgb = curr_rgb;
 				
 			b.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)(num_x + 1)/ (GLfloat)(m - 1);
 			b.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y + 1) / (GLfloat)(n - 1);
-			b.data = curr_data_val;
 			b.rgb = curr_rgb;
 				
 			c.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)(num_x + 1) / (GLfloat)(m - 1);
 			c.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y) / (GLfloat)(n - 1);
-			c.data = curr_data_val;
 			c.rgb = curr_rgb;
 				
 			d.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_x / (GLfloat)(m - 1);
 			d.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)num_y / (GLfloat)(n - 1);
-			d.data = curr_data_val;
 			d.rgb = curr_rgb;
 
 			vertex_data.push_back(a);
