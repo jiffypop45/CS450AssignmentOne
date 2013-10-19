@@ -22,10 +22,7 @@
 #include <vector>
 #include <algorithm>
 
-// A global constant for the number of points that will be in our object.
-const int NumPoints = 127806; // TODO: make this quantity dynamic
-
-// bluuuuuh these are gross and shouldn't be here, let's figure out a better way to do this later
+// input data dimensions
 GLint m = 0;
 GLint n = 0;
 
@@ -81,7 +78,9 @@ bool read_data_from_file(std::string filename, std::vector<GLfloat>& buffer) {
 	}
 	return true;
 }
-//----------------------------------------------------------------------------
+
+
+// get this here data on that there graphics card
 void init(std::vector<node> vertex_data)
 {
 	vertex_data.shrink_to_fit();
@@ -95,11 +94,6 @@ void init(std::vector<node> vertex_data)
 		colors_temp[3 * i + 1] = vertex_data[i].rgb[1];
 		colors_temp[3 * i + 2] = vertex_data[i].rgb[2];
 	}
-
-	
-	/*for(int i = 0; i < vertex_data.size(); i++) {
-		std::cout << "x: " << vertex_temp[2*i] << " y: " << vertex_temp[2*i+1] << " r: " << colors_temp[3*i] << " g: " << colors_temp[3*i + 1] << " b: " << colors_temp[3*i + 2] << "\n";
-	}*/
 
     // Create a vertex array object---OpenGL needs this to manage the Vertex
     // Buffer Object
@@ -166,7 +160,7 @@ display(void)
 
     // Draw the points.  The parameters to the function are: the mode, the first
     // index, and the count.
-    glDrawArrays(GL_TRIANGLES, 0, NumPoints);
+    glDrawArrays(GL_TRIANGLES, 0, m*n*6);
     glFlush();
     glutSwapBuffers();
 }
