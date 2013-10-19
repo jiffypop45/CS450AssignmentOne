@@ -359,9 +359,9 @@ int main(int argc, char** argv)
     glutInitContextVersion (3, 2);
     glutInitContextFlags (GLUT_FORWARD_COMPATIBLE);
 #endif
-    glutInitWindowSize(512, 512);
-    glutInitWindowPosition(500, 300);
-    glutCreateWindow("Simple Open GL Program");
+    glutInitWindowSize(768, 768);
+    glutInitWindowPosition(100, 100);
+	glutCreateWindow(data_filename.c_str());
     printf("%s\n%s\n", glGetString(GL_RENDERER), glGetString(GL_VERSION));
 
 	glewExperimental = GL_TRUE;
