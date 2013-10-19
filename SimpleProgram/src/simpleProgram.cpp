@@ -232,7 +232,6 @@ void HSVtoRGB(float hsv[3], float rgb[3]) {
     
 }
 
-
 int main(int argc, char** argv)
 {
 	// data input
@@ -284,20 +283,29 @@ int main(int argc, char** argv)
 		std::cout << "rgb values: " << rgbs[rgbs.size() - 1][0] << " " << rgbs[rgbs.size() - 1][1] << " " << rgbs[rgbs.size() - 1][2] << "\n";
 	}
 	std::cout << "size of rgbs: " << rgbs.size() << std::endl;
-	GLfloat X_MAX = 1.;
-	GLfloat Y_MAX = 1.;
-	GLfloat X_MIN = -1.;
-	GLfloat Y_MIN = -1.;
+
+
 	node a, b, c, d;
 	GLfloat curr_data_val;
 	float WHITE_RGB[3];
 	WHITE_RGB[0] = 1.0f;
 	WHITE_RGB[1] = 1.0f;
 	WHITE_RGB[2] = 1.0f;
-
+	GLfloat X_MAX = 1.;
+	GLfloat Y_MAX = 1.;
+	GLfloat X_MIN = -1.;
+	GLfloat Y_MIN = -1.;
 	float *curr_rgb;
 	std::vector<node> vertex_data;
 	int curr_bucket_val;
+
+	auto index_to_xy = [X_MIN, X_MAX, Y_MIN, Y_MAX] (int num_x, int num_y) {
+		std::pair<GLfloat, GLfloat> xypair;
+		xypair.first = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_x / (GLfloat)(m - 1);
+		xypair.second = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_y / (GLfloat)(n - 1);
+		return xypair;
+	};
+
 	for(int num_y = 0; num_y < n - 1; num_y++) {
 			for(int num_x = 0; num_x < m - 1; num_x++) {
 				int i = (num_y * m) + num_x;
@@ -349,6 +357,29 @@ int main(int argc, char** argv)
 				vertex_data.push_back(d);
 			}
 		}
+		for(int num_y = 0; num_y < n - 1; num_y++) {
+			for(int num_x = 0; num_x < m - 1; num_x++) {
+				int curr_bucket_val = buckets[num_y * n + num_x];
+				int neighbor_x_data = buckets[num_y*n + (num_x + 1)];
+				int neighbor_y_data = buckets[(num_y + 1) * n + num_x];
+
+				if(curr_bucket_val != neighbor_x_data) {
+					//do stuff
+					std::pair<GLfloat, GLfloat> xy1 = index_to_xy(num_x, num_y);
+					std::pair<GLfloat, GLfloat> xy2 = index_to_xy((num_x + 1), num_y*n);
+				} else if(curr_bucket_val != neighbor_y_data) {
+					// do other stuff
+					std::pair<GLfloat, GLfloat> xy1 = index_to_xy(num_x, num_y);
+					std::pair<GLfloat, GLfloat> xy2 = index_to_xy(num_x, (num_y + 1)*n);
+				}
+
+			}
+	}
+/*	March through your data left to right
+Test each grid temperature value against that of it's neighbors
+If they are the same (after discretization!!!), then do nothing
+      else, draw a line separating the two grid squares.
+Do the same in the vertical dimension as well*/	
 	std::cout << "size of vertex_data: " << vertex_data.size() << std::endl;
 	// graphics setup
      glutInit(&argc, argv);
