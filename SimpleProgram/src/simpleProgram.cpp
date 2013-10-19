@@ -34,11 +34,6 @@ GLint num_contours = 0;
 const std::string DATA_DIRECTORY_PATH = "Data\\";
 const GLfloat NO_DATA = 0.000000;
 
-struct node {
-	GLfloat position[2];
-	GLfloat *rgb;
-};
-
 // returns the bucket number from 1 to num_buckets
 int discretize_data(GLfloat data_value, GLfloat smallest_data_value, GLfloat largest_data_value, GLint num_buckets) {
 	if(data_value == NO_DATA) {
@@ -80,20 +75,8 @@ bool read_data_from_file(std::string filename, std::vector<GLfloat>& buffer, flo
 }
 
 // setup openGL
-void init(std::vector<node> vertex_data, std::vector<GLfloat> contours)
+void init(std::vector<float> vertex_locs, std::vector<float> vertex_colors, std::vector<GLfloat> contours)
 {
-	vertex_data.shrink_to_fit();
-	float *colors_temp = (float*)malloc(sizeof(float[3]) * vertex_data.size());
-	GLfloat *vertex_temp = (GLfloat*)malloc(sizeof(GLfloat[2]) * vertex_data.size());
-	
-	for(int i = 0; i < vertex_data.size(); i++) {
-		vertex_temp[2 * i] = vertex_data[i].position[0];
-		vertex_temp[2 * i + 1] = vertex_data[i].position[1];
-		colors_temp[3 * i] = vertex_data[i].rgb[0];
-		colors_temp[3 * i + 1] = vertex_data[i].rgb[1];
-		colors_temp[3 * i + 2] = vertex_data[i].rgb[2];
-	}
-
 	std::vector<GLfloat> contour_colors(num_contours * 6, 0.);
     // Create a vertex array object---OpenGL needs this to manage the Vertex
     // Buffer Object
@@ -113,11 +96,11 @@ void init(std::vector<node> vertex_data, std::vector<GLfloat> contours)
     // Here we copy the vertex data into our buffer on the card.  The parameters
     // tell it the type of buffer object, the size of the data in bytes, the
     // pointer for the data itself, and a hint for how we intend to use it.
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat[2]) * vertex_data.size(), vertex_temp, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertex_locs.size(), vertex_locs.data(), GL_STATIC_DRAW);
 	//glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	
 	glBindBuffer(GL_ARRAY_BUFFER, buffer[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float[3]) * vertex_data.size(), colors_temp, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertex_colors.size(), vertex_colors.data(), GL_STATIC_DRAW);
     // Load the shaders.  Note that this function is not offered by OpenGL
     // directly, but provided as a convenience.
     GLuint program = InitShader("../SimpleProgram/src/vshader32.glsl", 
@@ -259,11 +242,11 @@ std::pair<GLfloat, GLfloat> calc_xy(int x_in, int y_in)
 }
 
 // calculates vertex locations and colors based on buckets and bucket colors
-std::vector<node> calc_vertices(std::vector<int> buckets, std::vector<float*> rgbs)
+std::pair<std::vector<float>, std::vector<float>> calc_vertices(std::vector<int> buckets, std::vector<float*> rgbs)
 {
-	node a, b, c, d;
+	std::vector<float> vertex_locs;
+	std::vector<float> vertex_colors;
 	float *curr_rgb;
-	std::vector<node> vertex_data;
 	int curr_bucket_val;
 	GLfloat curr_data_val;
 	float * WHITE_RGB = new float[3];
@@ -284,37 +267,26 @@ std::vector<node> calc_vertices(std::vector<int> buckets, std::vector<float*> rg
 				curr_rgb = rgbs[curr_bucket_val];
 			}
 
-			// figure out screen location based on xy coords
-			std::pair<GLfloat, GLfloat> temp_xy = calc_xy(num_x, num_y + 1);
-			a.position[0] = temp_xy.first;
-			a.position[1] = temp_xy.second;
-			a.rgb = curr_rgb;
-				
-			temp_xy = calc_xy(num_x + 1, num_y + 1);
-			b.position[0] = temp_xy.first;
-			b.position[1] = temp_xy.second;
-			b.rgb = curr_rgb;
-				
-			temp_xy = calc_xy(num_x + 1, num_y);
-			c.position[0] = temp_xy.first;
-			c.position[1] = temp_xy.second;
-			c.rgb = curr_rgb;
-				
-			temp_xy = calc_xy(num_x, num_y);
-			d.position[0] = temp_xy.first;
-			d.position[1] = temp_xy.second;
-			d.rgb = curr_rgb;
+			auto push = [&curr_rgb, &vertex_colors, &vertex_locs](int x, int y) {
+				std::pair<GLfloat, GLfloat> temp_xy = calc_xy(x, y);
+				vertex_locs.push_back(temp_xy.first);
+				vertex_locs.push_back(temp_xy.second);
+				vertex_colors.push_back(curr_rgb[0]);
+				vertex_colors.push_back(curr_rgb[1]);
+				vertex_colors.push_back(curr_rgb[2]);
+			};
 
-			vertex_data.push_back(a);
-			vertex_data.push_back(b);
-			vertex_data.push_back(c);
-				
-			vertex_data.push_back(a);
-			vertex_data.push_back(c);
-			vertex_data.push_back(d);
+			// figure out screen location based on xy coords
+			// push back in order: a b c, a c d
+			push(num_x, num_y + 1);
+			push(num_x + 1, num_y + 1);
+			push(num_x + 1, num_y);
+			push(num_x, num_y + 1);
+			push(num_x + 1, num_y);
+			push(num_x, num_y);
 		}
 	}
-	return vertex_data;
+	return std::make_pair(vertex_locs, vertex_colors);
 }
 
 // calculates contour line locations based on buckets, brute force style
@@ -428,7 +400,7 @@ int main(int argc, char** argv)
 	glewInit();
 #endif
 
-    init(vertex_data, contours);
+    init(vertex_data.first, vertex_data.second, contours);
 
     //NOTE:  callbacks must go after window is created!!!
     glutKeyboardFunc(keyboard);
