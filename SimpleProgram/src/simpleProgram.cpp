@@ -102,7 +102,7 @@ void init(std::vector<node> vertex_data, std::vector<GLfloat> contours)
 
     // Create and initialize a buffer object---that's the memory buffer that
     // will be on the card!
-    GLuint buffer[3];
+    GLuint buffer[4];
     // We only need one for this example.
     glGenBuffers(4, buffer);
 
@@ -145,10 +145,10 @@ void init(std::vector<node> vertex_data, std::vector<GLfloat> contours)
 	loc = glGetAttribLocation(program, "vColor");
 	glEnableVertexAttribArray(loc);
 	glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
-	// Make the background white
 
 	glBindVertexArray(vao[1]);
 	glBindBuffer(GL_ARRAY_BUFFER, buffer[2]);
+	glBufferData(GL_ARRAY_BUFFER, contours.size() * sizeof(GLfloat), contours.data(), GL_STATIC_DRAW);
 	loc = glGetAttribLocation(program, "vPosition");
 	glEnableVertexAttribArray(loc);
 	glVertexAttribPointer(loc, 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
@@ -158,7 +158,8 @@ void init(std::vector<node> vertex_data, std::vector<GLfloat> contours)
 	loc = glGetAttribLocation(program, "vColor");
 	glEnableVertexAttribArray(loc);
 	glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
-
+	
+	// Make the background white
     glClearColor(1.0, 1.0, 1.0, 1.0);
 }
 
