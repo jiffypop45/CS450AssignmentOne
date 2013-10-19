@@ -38,6 +38,8 @@ struct node {
 	GLfloat position[2];
 	GLfloat *rgb;
 };
+
+// returns the bucket number from 1 to num_buckets
 int discretize_data(GLfloat data_value, GLfloat smallest_data_value, GLfloat largest_data_value, GLint num_buckets) {
 	if(data_value == NO_DATA) {
 		return -1;
@@ -45,7 +47,8 @@ int discretize_data(GLfloat data_value, GLfloat smallest_data_value, GLfloat lar
 	return int( (data_value-smallest_data_value)/(largest_data_value-smallest_data_value) * (num_buckets - 1)  + 0.5 );
 }
 
-int read_data_from_file(std::string filename, std::vector<GLfloat>& buffer) {
+// returns whether file was read
+bool read_data_from_file(std::string filename, std::vector<GLfloat>& buffer) {
 	std::ifstream data_file;
 	std::string line;
 	std::string filepath;
@@ -53,7 +56,6 @@ int read_data_from_file(std::string filename, std::vector<GLfloat>& buffer) {
 	GLfloat curr_data_val;
 
 	filepath = DATA_DIRECTORY_PATH + filename;
-	std::cout << "data_filepath: " << filepath << "\n\n";
 	data_file.open(DATA_DIRECTORY_PATH + filename);
 	if(data_file.is_open()) {
 		getline(data_file, line);
@@ -75,9 +77,9 @@ int read_data_from_file(std::string filename, std::vector<GLfloat>& buffer) {
 		std::cout << "data_max: " << data_max << std::endl;
 		std::cout << "data_min: " << data_min << std::endl;
 	} else {
-	  return 1;
+	  return false;
 	}
-	return 0;
+	return true;
 }
 //----------------------------------------------------------------------------
 void init(std::vector<node> vertex_data)
@@ -238,24 +240,25 @@ int main(int argc, char** argv)
 	GLint num_buckets = 20; // default value
 	if(argc < 2) {
 		std::cerr << "\n\nUsage: " << argv[0] << "DATA_FILENAME" << " NUM_BUCKETS" << std::endl;
+		std::cerr << "File must be in ./Data directory" << std::endl;
 		std::cerr << "Default NUM_BUCKETS value is 20" << std::endl;
 		return 1;
 	}
+
+	// params
 	if(argc == 3) {
 		num_buckets = atoi(argv[2]);
 	}
 	std::string data_filename = argv[1];
 	
+	// file IO
 	std::vector<GLfloat> data;
-
 	int data_read_status = read_data_from_file(data_filename, data);
-	if(data_read_status) {
-		std::cerr << "\n\nError: Attempted to read data file '" << data_filename << "'" << std::endl;
+	if(data_read_status == false) {
+		std::cerr << "Error: Failed to read data file '" << data_filename << "'" << std::endl;
+		std::cerr << "File must be in ./Data directory" << std::endl;
 		return 1;
 	}
-	std::cout << "DATA_FILENAME: '" << data_filename << "'\n";
-	std::cout << "ROW_DIMENSION: '" << m << "'\n";
-	std::cout << "COLUMN_DIMENSION: '" << n << "'\n";
 
 	// discretize
 	std::vector<int> buckets;
