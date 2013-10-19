@@ -332,18 +332,18 @@ int main(int argc, char** argv)
 			a.rgb = curr_rgb;
 				
 			temp_xy = index_to_xy(num_x + 1, num_y + 1);
-			b.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)(num_x + 1)/ (GLfloat)(m - 1);
-			b.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y + 1) / (GLfloat)(n - 1);
+			b.position[0] = temp_xy.first;
+			b.position[1] = temp_xy.second;
 			b.rgb = curr_rgb;
 				
 			temp_xy = index_to_xy(num_x + 1, num_y);
-			c.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)(num_x + 1) / (GLfloat)(m - 1);
-			c.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y) / (GLfloat)(n - 1);
+			c.position[0] = temp_xy.first;
+			c.position[1] = temp_xy.second;
 			c.rgb = curr_rgb;
 				
 			temp_xy = index_to_xy(num_x, num_y);
-			d.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_x / (GLfloat)(m - 1);
-			d.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)num_y / (GLfloat)(n - 1);
+			d.position[0] = temp_xy.first;
+			d.position[1] = temp_xy.second;
 			d.rgb = curr_rgb;
 
 			vertex_data.push_back(a);
