@@ -349,7 +349,7 @@ int main(int argc, char** argv)
     glutInitContextVersion (3, 2);
     glutInitContextFlags (GLUT_FORWARD_COMPATIBLE);
 #endif
-    glutInitWindowSize(768, 768);
+    glutInitWindowSize(768 * m / max(m, n), 768 * n / max(m, n));
     glutInitWindowPosition(100, 100);
 	glutCreateWindow(data_filename.c_str());
     printf("%s\n%s\n", glGetString(GL_RENDERER), glGetString(GL_VERSION));
