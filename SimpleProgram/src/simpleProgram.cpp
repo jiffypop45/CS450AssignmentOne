@@ -20,7 +20,6 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include <algorithm>
 
 // input data dimensions
 GLint m = 0;
@@ -101,8 +100,8 @@ void init(std::vector<node> vertex_data)
 
     // Create and initialize a buffer object---that's the memory buffer that
     // will be on the card!
+	// 0 is triangle vertices, 1 is colors
     GLuint buffer[2];
-    // We only need one for this example.
     glGenBuffers(2, buffer);
 
     // Bind makes it the active VBO
@@ -256,8 +255,6 @@ int main(int argc, char** argv)
 	for(auto point : data) {
 		buckets.push_back(discretize_data(point, data_min, data_max, num_buckets));
 	}
-	std::cout << "size of buckets: " << buckets.size() << std::endl;
-	std::cout << "size of data: " << data.size() << std::endl;
 
 	std::vector<GLfloat> hues(num_buckets, 0);
 	for(int i = 0; i < num_buckets; i++) {
