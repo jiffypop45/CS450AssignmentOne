@@ -1,3 +1,6 @@
+CS450/550 Assignment 1
+Members: Austin Sharp, Padraic McGraw
+
 USAGE: SimpleProgram DATA_FILENAME NUM_BUCKETS
 		DATA_FILENAME must be name of file in the Data/ directory
 		Default NUM_BUCKETS value is 20
