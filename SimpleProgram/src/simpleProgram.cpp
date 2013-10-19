@@ -36,7 +36,7 @@ GLfloat data_max = 0.;
 
 struct node {
 	GLfloat position[2];
-	GLfloat rgb[3];
+	GLfloat *rgb;
 	GLfloat data;
 };
 int discretize_data(GLfloat data_value, GLfloat smallest_data_value, GLfloat largest_data_value, GLint num_buckets) {
@@ -280,14 +280,12 @@ int main(int argc, char** argv)
 		hsv[0] = hue;
 		hsv[1] = hsv[2] = 1.0f;
 		HSVtoRGB(hsv, rgbs[rgbs.size() - 1]);
-		std::cout << "hsv values: " << hsv[0] << " " << hsv[1] << " " << hsv[2] << "\n";
-		std::cout << "rgb values: " << rgbs[rgbs.size() - 1][0] << " " << rgbs[rgbs.size() - 1][1] << " " << rgbs[rgbs.size() - 1][2] << "\n";
 	}
-	std::cout << "size of rgbs: " << rgbs.size() << std::endl;
-	GLfloat X_MAX = 1.;
-	GLfloat Y_MAX = 1.;
-	GLfloat X_MIN = -1.;
-	GLfloat Y_MIN = -1.;
+
+	const GLfloat X_MAX = .95;
+	const GLfloat Y_MAX = .95;
+	const GLfloat X_MIN = -.95;
+	const GLfloat Y_MIN = -.95;
 	node a, b, c, d;
 	GLfloat curr_data_val;
 	float WHITE_RGB[3];
@@ -299,57 +297,50 @@ int main(int argc, char** argv)
 	std::vector<node> vertex_data;
 	int curr_bucket_val;
 	for(int num_y = 0; num_y < n - 1; num_y++) {
-			for(int num_x = 0; num_x < m - 1; num_x++) {
-				int i = (num_y * m) + num_x;
-				curr_bucket_val = buckets[i];
-				curr_data_val = data[i];
+		for(int num_x = 0; num_x < m - 1; num_x++) {
+			int i = (num_y * m) + num_x;
+			curr_bucket_val = buckets[i];
+			curr_data_val = data[i];
 
-				if(curr_bucket_val == -1) {
-					curr_rgb = WHITE_RGB;
-				}
-				else {
-					curr_rgb = rgbs[curr_bucket_val];
-				}
-				//std::cout << "curr_rgb: [" << (*curr_rgb)[0] << (*curr_rgb)[1] << (*curr_rgb)[2]
-				//std::cout << "curr_bucket_val: " << curr_bucket_val << std::endl;
-				a.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_x / (GLfloat)(n - 1);
-				a.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y + 1) / (GLfloat)(m - 1);
-				a.data = curr_data_val;
-				a.rgb[0] = curr_rgb[0];
-				a.rgb[1] = curr_rgb[1];
-				a.rgb[2] = curr_rgb[2];
-				
-				b.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)(num_x + 1)/ (GLfloat)(n - 1);
-				b.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y + 1) / (GLfloat)(m - 1);
-				b.data = curr_data_val;
-				b.rgb[0] = curr_rgb[0];
-				b.rgb[1] = curr_rgb[1];
-				b.rgb[2] = curr_rgb[2];
-				
-				c.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)(num_x + 1) / (GLfloat)(n - 1);
-				c.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y) / (GLfloat)(m - 1);
-				c.data = curr_data_val;
-				c.rgb[0] = curr_rgb[0];
-				c.rgb[1] = curr_rgb[1];
-				c.rgb[2] = curr_rgb[2];
-				
-				d.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_x / (GLfloat)(n - 1);
-				d.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)num_y / (GLfloat)(m - 1);
-				d.data = curr_data_val;
-				d.rgb[0] = curr_rgb[0];
-				d.rgb[1] = curr_rgb[1];
-				d.rgb[2] = curr_rgb[2];
-
-				vertex_data.push_back(a);
-				vertex_data.push_back(b);
-				vertex_data.push_back(c);
-				
-				vertex_data.push_back(a);
-				vertex_data.push_back(c);
-				vertex_data.push_back(d);
+			// account for no data areas, which should stay white
+			if(curr_bucket_val == -1) {
+				curr_rgb = WHITE_RGB;
 			}
+			else {
+				curr_rgb = rgbs[curr_bucket_val];
+			}
+
+			a.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_x / (GLfloat)(m - 1);
+			a.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y + 1) / (GLfloat)(n - 1);
+			a.data = curr_data_val;
+			a.rgb = curr_rgb;
+				
+			b.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)(num_x + 1)/ (GLfloat)(m - 1);
+			b.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y + 1) / (GLfloat)(n - 1);
+			b.data = curr_data_val;
+			b.rgb = curr_rgb;
+				
+			c.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)(num_x + 1) / (GLfloat)(m - 1);
+			c.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y) / (GLfloat)(n - 1);
+			c.data = curr_data_val;
+			c.rgb = curr_rgb;
+				
+			d.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_x / (GLfloat)(m - 1);
+			d.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)num_y / (GLfloat)(n - 1);
+			d.data = curr_data_val;
+			d.rgb = curr_rgb;
+
+			vertex_data.push_back(a);
+			vertex_data.push_back(b);
+			vertex_data.push_back(c);
+				
+			vertex_data.push_back(a);
+			vertex_data.push_back(c);
+			vertex_data.push_back(d);
 		}
-	std::cout << "size of vertex_data: " << vertex_data.size() << std::endl;
+	}
+
+
 	// graphics setup
      glutInit(&argc, argv);
 #ifdef __APPLE__
