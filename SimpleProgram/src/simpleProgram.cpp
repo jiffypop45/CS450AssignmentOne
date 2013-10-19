@@ -57,7 +57,6 @@ bool read_data_from_file(std::string filename, std::vector<GLfloat>& buffer) {
 	if(data_file.is_open()) {
 		getline(data_file, line);
 		sscanf(line.c_str(), "# %i %i", &m, &n);
-		std::cout << "Reading " << m * n << " data points from file '" << filename << "'" << std::endl;
 		for(int i = 0; i < n; i++) {
 			for(int j = 0; j < m; j++) {
 				if(!getline(data_file, line, ' ')) break;
@@ -71,8 +70,6 @@ bool read_data_from_file(std::string filename, std::vector<GLfloat>& buffer) {
 			}
 		}
 		data_file.close();
-		std::cout << "data_max: " << data_max << std::endl;
-		std::cout << "data_min: " << data_min << std::endl;
 	} else {
 	  return false;
 	}
@@ -234,7 +231,7 @@ int main(int argc, char** argv)
 	GLint num_buckets = 20; // default value
 	if(argc < 2) {
 		std::cerr << "\n\nUsage: " << argv[0] << "DATA_FILENAME" << " NUM_BUCKETS" << std::endl;
-		std::cerr << "File must be in ./Data directory" << std::endl;
+		std::cerr << "File must be in Data/ directory" << std::endl;
 		std::cerr << "Default NUM_BUCKETS value is 20" << std::endl;
 		return 1;
 	}
