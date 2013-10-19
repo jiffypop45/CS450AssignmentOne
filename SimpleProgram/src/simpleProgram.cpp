@@ -36,7 +36,7 @@ GLfloat data_max = 0.;
 
 struct node {
 	GLfloat position[2];
-	GLfloat *rgb;
+	GLfloat rgb[3];
 	GLfloat data;
 };
 int discretize_data(GLfloat data_value, GLfloat smallest_data_value, GLfloat largest_data_value, GLint num_buckets) {
@@ -88,12 +88,17 @@ void init(std::vector<node> vertex_data)
 	GLfloat *vertex_temp = (GLfloat*)malloc(sizeof(GLfloat[2]) * vertex_data.size());
 
 	for(int i = 0; i < vertex_data.size(); i++) {
-		vertex_temp[i] = vertex_data[i].position[0];
-		vertex_temp[i + 1] = vertex_data[i].position[1];
-		colors_temp[i] = vertex_data[i].rgb[0];
-		colors_temp[i + 1] = vertex_data[i].rgb[1];
-		colors_temp[i + 2] = vertex_data[i].rgb[2];
+		vertex_temp[2 * i] = vertex_data[i].position[0];
+		vertex_temp[2 * i + 1] = vertex_data[i].position[1];
+		colors_temp[3 * i] = vertex_data[i].rgb[0];
+		colors_temp[3 * i + 1] = vertex_data[i].rgb[1];
+		colors_temp[3 * i + 2] = vertex_data[i].rgb[2];
 	}
+
+	
+	/*for(int i = 0; i < vertex_data.size(); i++) {
+		std::cout << "x: " << vertex_temp[2*i] << " y: " << vertex_temp[2*i+1] << " r: " << colors_temp[3*i] << " g: " << colors_temp[3*i + 1] << " b: " << colors_temp[3*i + 2] << "\n";
+	}*/
 
     // Create a vertex array object---OpenGL needs this to manage the Vertex
     // Buffer Object
@@ -275,6 +280,8 @@ int main(int argc, char** argv)
 		hsv[0] = hue;
 		hsv[1] = hsv[2] = 1.0f;
 		HSVtoRGB(hsv, rgbs[rgbs.size() - 1]);
+		std::cout << "hsv values: " << hsv[0] << " " << hsv[1] << " " << hsv[2] << "\n";
+		std::cout << "rgb values: " << rgbs[rgbs.size() - 1][0] << " " << rgbs[rgbs.size() - 1][1] << " " << rgbs[rgbs.size() - 1][2] << "\n";
 	}
 	std::cout << "size of rgbs: " << rgbs.size() << std::endl;
 	GLfloat X_MAX = 1.;
@@ -308,22 +315,30 @@ int main(int argc, char** argv)
 				a.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_x / (GLfloat)(n - 1);
 				a.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y + 1) / (GLfloat)(m - 1);
 				a.data = curr_data_val;
-				a.rgb = curr_rgb;
+				a.rgb[0] = curr_rgb[0];
+				a.rgb[1] = curr_rgb[1];
+				a.rgb[2] = curr_rgb[2];
 				
 				b.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)(num_x + 1)/ (GLfloat)(n - 1);
 				b.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y + 1) / (GLfloat)(m - 1);
 				b.data = curr_data_val;
-				b.rgb = curr_rgb;
+				b.rgb[0] = curr_rgb[0];
+				b.rgb[1] = curr_rgb[1];
+				b.rgb[2] = curr_rgb[2];
 				
 				c.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)(num_x + 1) / (GLfloat)(n - 1);
 				c.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)(num_y) / (GLfloat)(m - 1);
 				c.data = curr_data_val;
-				c.rgb = curr_rgb;
+				c.rgb[0] = curr_rgb[0];
+				c.rgb[1] = curr_rgb[1];
+				c.rgb[2] = curr_rgb[2];
 				
 				d.position[0] = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_x / (GLfloat)(n - 1);
 				d.position[1] = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)num_y / (GLfloat)(m - 1);
 				d.data = curr_data_val;
-				d.rgb = curr_rgb;
+				d.rgb[0] = curr_rgb[0];
+				d.rgb[1] = curr_rgb[1];
+				d.rgb[2] = curr_rgb[2];
 
 				vertex_data.push_back(a);
 				vertex_data.push_back(b);
