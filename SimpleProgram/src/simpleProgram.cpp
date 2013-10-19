@@ -319,11 +319,12 @@ std::vector<GLfloat> calc_contours(std::vector<int> buckets)
 {
 	std::pair<GLfloat, GLfloat> xy1, xy2;
 	std::vector<GLfloat> contours;
-	for(int num_y = 0; num_y < n - 2; num_y++) {
-		for(int num_x = 0; num_x < m - 2; num_x++) {
-			int curr_bucket_val = buckets[num_y * n + num_x];
-			int neighbor_x_data = buckets[num_y * n + (num_x + 1)];
-			int neighbor_y_data = buckets[(num_y + 1) * n + num_x];
+	for(int num_y = 0; num_y < n - 1; num_y++) {
+		for(int num_x = 0; num_x < m - 1; num_x++) {
+			int curr_idx = num_y * m + num_x;
+			int curr_bucket_val = buckets[curr_idx];
+			int neighbor_x_data = buckets[curr_idx + 1];
+			int neighbor_y_data = buckets[curr_idx + m];
 
 			if(curr_bucket_val != neighbor_x_data) {
 				//do stuff
