@@ -21,23 +21,18 @@
 #include <sstream>
 #include <vector>
 
+// global so that we can bind in display()
 GLuint vao[2];
 
 // input data dimensions
-
+// global so that we know the size of everything
 GLint m = 0;
 GLint n = 0;
-
-std::string DATA_DIRECTORY_PATH = "Data\\";
-GLfloat NO_DATA = 0.000000;
-GLfloat data_min = 0.;
-GLfloat data_max = 0.;
 GLint num_contours = 0;
 
-struct node {
-	GLfloat position[2];
-	GLfloat *rgb;
-};
+// global 
+const std::string DATA_DIRECTORY_PATH = "Data\\";
+const GLfloat NO_DATA = 0.000000;
 
 // returns the bucket number from 1 to num_buckets
 int discretize_data(GLfloat data_value, GLfloat smallest_data_value, GLfloat largest_data_value, GLint num_buckets) {
@@ -48,7 +43,7 @@ int discretize_data(GLfloat data_value, GLfloat smallest_data_value, GLfloat lar
 }
 
 // returns whether file was read
-bool read_data_from_file(std::string filename, std::vector<GLfloat>& buffer) {
+bool read_data_from_file(std::string filename, std::vector<GLfloat>& buffer, float & data_min, float & data_max) {
 	std::ifstream data_file;
 	std::string line;
 	std::string filepath;
@@ -78,21 +73,10 @@ bool read_data_from_file(std::string filename, std::vector<GLfloat>& buffer) {
 	}
 	return true;
 }
-//----------------------------------------------------------------------------
-void init(std::vector<node> vertex_data, std::vector<GLfloat> contours)
-{
-	vertex_data.shrink_to_fit();
-	float *colors_temp = (float*)malloc(sizeof(float[3]) * vertex_data.size());
-	GLfloat *vertex_temp = (GLfloat*)malloc(sizeof(GLfloat[2]) * vertex_data.size());
-	
-	for(int i = 0; i < vertex_data.size(); i++) {
-		vertex_temp[2 * i] = vertex_data[i].position[0];
-		vertex_temp[2 * i + 1] = vertex_data[i].position[1];
-		colors_temp[3 * i] = vertex_data[i].rgb[0];
-		colors_temp[3 * i + 1] = vertex_data[i].rgb[1];
-		colors_temp[3 * i + 2] = vertex_data[i].rgb[2];
-	}
 
+// setup openGL
+void init(std::vector<float> vertex_locs, std::vector<float> vertex_colors, std::vector<GLfloat> contours)
+{
 	std::vector<GLfloat> contour_colors(num_contours * 6, 0.);
     // Create a vertex array object---OpenGL needs this to manage the Vertex
     // Buffer Object
@@ -112,11 +96,11 @@ void init(std::vector<node> vertex_data, std::vector<GLfloat> contours)
     // Here we copy the vertex data into our buffer on the card.  The parameters
     // tell it the type of buffer object, the size of the data in bytes, the
     // pointer for the data itself, and a hint for how we intend to use it.
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat[2]) * vertex_data.size(), vertex_temp, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertex_locs.size(), vertex_locs.data(), GL_STATIC_DRAW);
 	//glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	
 	glBindBuffer(GL_ARRAY_BUFFER, buffer[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float[3]) * vertex_data.size(), colors_temp, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertex_colors.size(), vertex_colors.data(), GL_STATIC_DRAW);
     // Load the shaders.  Note that this function is not offered by OpenGL
     // directly, but provided as a convenience.
     GLuint program = InitShader("../SimpleProgram/src/vshader32.glsl", 
@@ -163,7 +147,7 @@ void init(std::vector<node> vertex_data, std::vector<GLfloat> contours)
     glClearColor(1.0, 1.0, 1.0, 1.0);
 }
 
-//----------------------------------------------------------------------------
+// drawing process. draws vaos for data & contour lines
 void
 display(void)
 {
@@ -243,6 +227,7 @@ void HSVtoRGB(float hsv[3], float rgb[3]) {
     
 }
 
+// takes in the data point coordinates, outputs a location for OpenGL to use
 std::pair<GLfloat, GLfloat> calc_xy(int x_in, int y_in) 
 {
 	const GLfloat X_MAX = .95;
@@ -256,11 +241,12 @@ std::pair<GLfloat, GLfloat> calc_xy(int x_in, int y_in)
 	return xypair;
 }
 
-std::vector<node> calc_vertices(std::vector<int> buckets, std::vector<GLfloat> data, std::vector<float*> rgbs)
+// calculates vertex locations and colors based on buckets and bucket colors
+std::pair<std::vector<float>, std::vector<float>> calc_vertices(std::vector<int> buckets, std::vector<float*> rgbs)
 {
-	node a, b, c, d;
+	std::vector<float> vertex_locs;
+	std::vector<float> vertex_colors;
 	float *curr_rgb;
-	std::vector<node> vertex_data;
 	int curr_bucket_val;
 	GLfloat curr_data_val;
 	float * WHITE_RGB = new float[3];
@@ -272,7 +258,6 @@ std::vector<node> calc_vertices(std::vector<int> buckets, std::vector<GLfloat> d
 		for(int num_x = 0; num_x < m - 1; num_x++) {
 			int i = (num_y * m) + num_x;
 			curr_bucket_val = buckets[i];
-			curr_data_val = data[i];
 
 			// account for no data areas, which should stay white
 			if(curr_bucket_val == -1) {
@@ -282,48 +267,39 @@ std::vector<node> calc_vertices(std::vector<int> buckets, std::vector<GLfloat> d
 				curr_rgb = rgbs[curr_bucket_val];
 			}
 
-			// figure out screen location based on xy coords
-			std::pair<GLfloat, GLfloat> temp_xy = calc_xy(num_x, num_y + 1);
-			a.position[0] = temp_xy.first;
-			a.position[1] = temp_xy.second;
-			a.rgb = curr_rgb;
-				
-			temp_xy = calc_xy(num_x + 1, num_y + 1);
-			b.position[0] = temp_xy.first;
-			b.position[1] = temp_xy.second;
-			b.rgb = curr_rgb;
-				
-			temp_xy = calc_xy(num_x + 1, num_y);
-			c.position[0] = temp_xy.first;
-			c.position[1] = temp_xy.second;
-			c.rgb = curr_rgb;
-				
-			temp_xy = calc_xy(num_x, num_y);
-			d.position[0] = temp_xy.first;
-			d.position[1] = temp_xy.second;
-			d.rgb = curr_rgb;
+			auto push = [&curr_rgb, &vertex_colors, &vertex_locs](int x, int y) {
+				std::pair<GLfloat, GLfloat> temp_xy = calc_xy(x, y);
+				vertex_locs.push_back(temp_xy.first);
+				vertex_locs.push_back(temp_xy.second);
+				vertex_colors.push_back(curr_rgb[0]);
+				vertex_colors.push_back(curr_rgb[1]);
+				vertex_colors.push_back(curr_rgb[2]);
+			};
 
-			vertex_data.push_back(a);
-			vertex_data.push_back(b);
-			vertex_data.push_back(c);
-				
-			vertex_data.push_back(a);
-			vertex_data.push_back(c);
-			vertex_data.push_back(d);
+			// figure out screen location based on xy coords
+			// push back in order: a b c, a c d
+			push(num_x, num_y + 1);
+			push(num_x + 1, num_y + 1);
+			push(num_x + 1, num_y);
+			push(num_x, num_y + 1);
+			push(num_x + 1, num_y);
+			push(num_x, num_y);
 		}
 	}
-	return vertex_data;
+	return std::make_pair(vertex_locs, vertex_colors);
 }
 
+// calculates contour line locations based on buckets, brute force style
 std::vector<GLfloat> calc_contours(std::vector<int> buckets)
 {
 	std::pair<GLfloat, GLfloat> xy1, xy2;
 	std::vector<GLfloat> contours;
-	for(int num_y = 0; num_y < n - 2; num_y++) {
-		for(int num_x = 0; num_x < m - 2; num_x++) {
-			int curr_bucket_val = buckets[num_y * n + num_x];
-			int neighbor_x_data = buckets[num_y * n + (num_x + 1)];
-			int neighbor_y_data = buckets[(num_y + 1) * n + num_x];
+	for(int num_y = 0; num_y < n - 1; num_y++) {
+		for(int num_x = 0; num_x < m - 1; num_x++) {
+			int curr_idx = num_y * m + num_x;
+			int curr_bucket_val = buckets[curr_idx];
+			int neighbor_x_data = buckets[curr_idx + 1];
+			int neighbor_y_data = buckets[curr_idx + m];
 
 			if(curr_bucket_val != neighbor_x_data) {
 				//do stuff
@@ -372,7 +348,8 @@ int main(int argc, char** argv)
 	
 	// file IO
 	std::vector<GLfloat> data;
-	int data_read_status = read_data_from_file(data_filename, data);
+	GLfloat data_min = 0, data_max = 0;
+	int data_read_status = read_data_from_file(data_filename, data, data_min, data_max);
 	if(data_read_status == false) {
 		std::cerr << "Error: Failed to read data file '" << data_filename << "'" << std::endl;
 		std::cerr << "File must be in ./Data directory" << std::endl;
@@ -400,16 +377,8 @@ int main(int argc, char** argv)
 		HSVtoRGB(hsv, rgbs[rgbs.size() - 1]);
 	}
 
-	auto vertex_data = calc_vertices(buckets, data, rgbs);
+	auto vertex_data = calc_vertices(buckets, rgbs);
 	auto contours = calc_contours(buckets);
-	
-	
-/*	March through your data left to right
-Test each grid temperature value against that of it's neighbors
-If they are the same (after discretization!!!), then do nothing
-      else, draw a line separating the two grid squares.
-Do the same in the vertical dimension as well*/	
-	std::cout << "size of vertex_data: " << vertex_data.size() << std::endl;
 
 	// graphics setup
      glutInit(&argc, argv);
@@ -431,7 +400,7 @@ Do the same in the vertical dimension as well*/
 	glewInit();
 #endif
 
-    init(vertex_data, contours);
+    init(vertex_data.first, vertex_data.second, contours);
 
     //NOTE:  callbacks must go after window is created!!!
     glutKeyboardFunc(keyboard);
