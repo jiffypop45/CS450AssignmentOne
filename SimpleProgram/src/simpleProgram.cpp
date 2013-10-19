@@ -20,13 +20,11 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include <algorithm>
 
 GLuint vao[2];
-// A global constant for the number of points that will be in our object.
-const int NumPoints = 127806; // TODO: make this quantity dynamic
 
-// bluuuuuh these are gross and shouldn't be here, let's figure out a better way to do this later
+// input data dimensions
+
 GLint m = 0;
 GLint n = 0;
 
@@ -62,7 +60,6 @@ bool read_data_from_file(std::string filename, std::vector<GLfloat>& buffer) {
 	if(data_file.is_open()) {
 		getline(data_file, line);
 		sscanf(line.c_str(), "# %i %i", &m, &n);
-		std::cout << "Reading " << m * n << " data points from file '" << filename << "'" << std::endl;
 		for(int i = 0; i < n; i++) {
 			for(int j = 0; j < m; j++) {
 				if(!getline(data_file, line, ' ')) break;
@@ -76,8 +73,6 @@ bool read_data_from_file(std::string filename, std::vector<GLfloat>& buffer) {
 			}
 		}
 		data_file.close();
-		std::cout << "data_max: " << data_max << std::endl;
-		std::cout << "data_min: " << data_min << std::endl;
 	} else {
 	  return false;
 	}
@@ -99,10 +94,6 @@ void init(std::vector<node> vertex_data, std::vector<GLfloat> contours)
 	}
 
 	std::vector<GLfloat> contour_colors(num_contours * 6, 0.);
-	/*for(int i = 0; i < vertex_data.size(); i++) {
-		std::cout << "x: " << vertex_temp[2*i] << " y: " << vertex_temp[2*i+1] << " r: " << colors_temp[3*i] << " g: " << colors_temp[3*i + 1] << " b: " << colors_temp[3*i + 2] << "\n";
-	}*/
-
     // Create a vertex array object---OpenGL needs this to manage the Vertex
     // Buffer Object
     // Generate the vertex array and then bind it to make make it active.
@@ -181,7 +172,7 @@ display(void)
     // Draw the points.  The parameters to the function are: the mode, the first
     // index, and the count.
 	glBindVertexArray(vao[0]);
-    glDrawArrays(GL_TRIANGLES, 0, NumPoints);
+    glDrawArrays(GL_TRIANGLES, 0, m*n*6);
 
 	glBindVertexArray(vao[1]);
 	glDrawArrays(GL_LINES, 0, num_contours * 2);
@@ -257,7 +248,7 @@ int main(int argc, char** argv)
 	GLint num_buckets = 20; // default value
 	if(argc < 2) {
 		std::cerr << "\n\nUsage: " << argv[0] << "DATA_FILENAME" << " NUM_BUCKETS" << std::endl;
-		std::cerr << "File must be in ./Data directory" << std::endl;
+		std::cerr << "File must be in Data/ directory" << std::endl;
 		std::cerr << "Default NUM_BUCKETS value is 20" << std::endl;
 		return 1;
 	}
@@ -282,8 +273,6 @@ int main(int argc, char** argv)
 	for(auto point : data) {
 		buckets.push_back(discretize_data(point, data_min, data_max, num_buckets));
 	}
-	std::cout << "size of buckets: " << buckets.size() << std::endl;
-	std::cout << "size of data: " << data.size() << std::endl;
 
 	std::vector<GLfloat> hues(num_buckets, 0);
 	for(int i = 0; i < num_buckets; i++) {
