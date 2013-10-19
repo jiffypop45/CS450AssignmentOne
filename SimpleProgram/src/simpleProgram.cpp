@@ -243,6 +243,116 @@ void HSVtoRGB(float hsv[3], float rgb[3]) {
     
 }
 
+std::pair<GLfloat, GLfloat> calc_xy(int x_in, int y_in) 
+{
+	const GLfloat X_MAX = .95;
+	const GLfloat Y_MAX = .95;
+	const GLfloat X_MIN = -.95;
+	const GLfloat Y_MIN = -.95;
+
+	std::pair<GLfloat, GLfloat> xypair;
+	xypair.first = X_MIN + (X_MAX - X_MIN) * (GLfloat)x_in / (GLfloat)(m - 1);
+	xypair.second = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)y_in / (GLfloat)(n - 1);
+	return xypair;
+}
+
+std::vector<node> calc_vertices(std::vector<int> buckets, std::vector<GLfloat> data, std::vector<float*> rgbs)
+{
+	node a, b, c, d;
+	float *curr_rgb;
+	std::vector<node> vertex_data;
+	int curr_bucket_val;
+	GLfloat curr_data_val;
+	float * WHITE_RGB = new float[3];
+	WHITE_RGB[0] = 1.0f;
+	WHITE_RGB[1] = 1.0f;
+	WHITE_RGB[2] = 1.0f;
+
+	for(int num_y = 0; num_y < n - 1; num_y++) {
+		for(int num_x = 0; num_x < m - 1; num_x++) {
+			int i = (num_y * m) + num_x;
+			curr_bucket_val = buckets[i];
+			curr_data_val = data[i];
+
+			// account for no data areas, which should stay white
+			if(curr_bucket_val == -1) {
+				curr_rgb = WHITE_RGB;
+			}
+			else {
+				curr_rgb = rgbs[curr_bucket_val];
+			}
+
+			// figure out screen location based on xy coords
+			std::pair<GLfloat, GLfloat> temp_xy = calc_xy(num_x, num_y + 1);
+			a.position[0] = temp_xy.first;
+			a.position[1] = temp_xy.second;
+			a.rgb = curr_rgb;
+				
+			temp_xy = calc_xy(num_x + 1, num_y + 1);
+			b.position[0] = temp_xy.first;
+			b.position[1] = temp_xy.second;
+			b.rgb = curr_rgb;
+				
+			temp_xy = calc_xy(num_x + 1, num_y);
+			c.position[0] = temp_xy.first;
+			c.position[1] = temp_xy.second;
+			c.rgb = curr_rgb;
+				
+			temp_xy = calc_xy(num_x, num_y);
+			d.position[0] = temp_xy.first;
+			d.position[1] = temp_xy.second;
+			d.rgb = curr_rgb;
+
+			vertex_data.push_back(a);
+			vertex_data.push_back(b);
+			vertex_data.push_back(c);
+				
+			vertex_data.push_back(a);
+			vertex_data.push_back(c);
+			vertex_data.push_back(d);
+		}
+	}
+	return vertex_data;
+}
+
+std::vector<GLfloat> calc_contours(std::vector<int> buckets)
+{
+	std::pair<GLfloat, GLfloat> xy1, xy2;
+	std::vector<GLfloat> contours;
+	for(int num_y = 0; num_y < n - 2; num_y++) {
+		for(int num_x = 0; num_x < m - 2; num_x++) {
+			int curr_bucket_val = buckets[num_y * n + num_x];
+			int neighbor_x_data = buckets[num_y * n + (num_x + 1)];
+			int neighbor_y_data = buckets[(num_y + 1) * n + num_x];
+
+			if(curr_bucket_val != neighbor_x_data) {
+				//do stuff
+				xy1 = calc_xy(num_x + 1, num_y + 1);
+				xy2 = calc_xy(num_x + 1, num_y);
+				contours.push_back(xy1.first);
+				contours.push_back(xy1.second);
+				contours.push_back(xy2.first);
+				contours.push_back(xy2.second);
+				num_contours++;
+			} 
+			
+			if(curr_bucket_val != neighbor_y_data) {
+				// do other stuff
+				xy1 = calc_xy(num_x, num_y + 1);
+				xy2 = calc_xy(num_x + 1, num_y + 1);
+				contours.push_back(xy1.first);
+				contours.push_back(xy1.second);
+				contours.push_back(xy2.first);
+				contours.push_back(xy2.second);
+				num_contours++;
+			}
+
+		}
+	}
+	return contours;
+}
+
+
 int main(int argc, char** argv)
 {
 	// data input
@@ -290,102 +400,10 @@ int main(int argc, char** argv)
 		HSVtoRGB(hsv, rgbs[rgbs.size() - 1]);
 	}
 
-	const GLfloat X_MAX = .95;
-	const GLfloat Y_MAX = .95;
-	const GLfloat X_MIN = -.95;
-	const GLfloat Y_MIN = -.95;
-	node a, b, c, d;
-	GLfloat curr_data_val;
-	float WHITE_RGB[3];
-	WHITE_RGB[0] = 1.0f;
-	WHITE_RGB[1] = 1.0f;
-	WHITE_RGB[2] = 1.0f;
-	float *curr_rgb;
-	std::vector<node> vertex_data;
-	int curr_bucket_val;
-
-	auto index_to_xy = [X_MIN, X_MAX, Y_MIN, Y_MAX] (int num_x, int num_y) {
-		std::pair<GLfloat, GLfloat> xypair;
-		xypair.first = X_MIN + (X_MAX - X_MIN) * (GLfloat)num_x / (GLfloat)(m - 1);
-		xypair.second = Y_MIN + (Y_MAX - Y_MIN) * (GLfloat)num_y / (GLfloat)(n - 1);
-		return xypair;
-	};
-
-	for(int num_y = 0; num_y < n - 1; num_y++) {
-		for(int num_x = 0; num_x < m - 1; num_x++) {
-			int i = (num_y * m) + num_x;
-			curr_bucket_val = buckets[i];
-			curr_data_val = data[i];
-
-			// account for no data areas, which should stay white
-			if(curr_bucket_val == -1) {
-				curr_rgb = WHITE_RGB;
-			}
-			else {
-				curr_rgb = rgbs[curr_bucket_val];
-			}
-
-			// figure out screen location based on xy coords
-			std::pair<GLfloat, GLfloat> temp_xy = index_to_xy(num_x, num_y + 1);
-			a.position[0] = temp_xy.first;
-			a.position[1] = temp_xy.second;
-			a.rgb = curr_rgb;
-				
-			temp_xy = index_to_xy(num_x + 1, num_y + 1);
-			b.position[0] = temp_xy.first;
-			b.position[1] = temp_xy.second;
-			b.rgb = curr_rgb;
-				
-			temp_xy = index_to_xy(num_x + 1, num_y);
-			c.position[0] = temp_xy.first;
-			c.position[1] = temp_xy.second;
-			c.rgb = curr_rgb;
-				
-			temp_xy = index_to_xy(num_x, num_y);
-			d.position[0] = temp_xy.first;
-			d.position[1] = temp_xy.second;
-			d.rgb = curr_rgb;
-
-			vertex_data.push_back(a);
-			vertex_data.push_back(b);
-			vertex_data.push_back(c);
-				
-			vertex_data.push_back(a);
-			vertex_data.push_back(c);
-			vertex_data.push_back(d);
-		}
-	}
-	std::pair<GLfloat, GLfloat> xy1, xy2;
-	std::vector<GLfloat> contours;
-	std::vector<GLfloat> contours_rgb;
-	for(int num_y = 0; num_y < n - 1; num_y++) {
-		for(int num_x = 0; num_x < m - 1; num_x++) {
-			int curr_bucket_val = buckets[num_y * n + num_x];
-			int neighbor_x_data = buckets[num_y*n + (num_x + 1)];
-			int neighbor_y_data = buckets[(num_y + 1) * n + num_x];
-
-			if(curr_bucket_val != neighbor_x_data) {
-				//do stuff
-				xy1 = index_to_xy(num_x + 1, num_y + 1);
-				xy2 = index_to_xy((num_x + 1), num_y*n);
-				contours.push_back(xy1.first);
-				contours.push_back(xy1.second);
-				contours.push_back(xy2.first);
-				contours.push_back(xy2.second);
-				num_contours++;
-			} else if(curr_bucket_val != neighbor_y_data) {
-				// do other stuff
-				xy1 = index_to_xy(num_x, num_y);
-				xy2 = index_to_xy(num_x, (num_y + 1)*n);
-				contours.push_back(xy1.first);
-				contours.push_back(xy1.second);
-				contours.push_back(xy2.first);
-				contours.push_back(xy2.second);
-				num_contours++;
-			}
-
-		}
-	}
+	auto vertex_data = calc_vertices(buckets, data, rgbs);
+	auto contours = calc_contours(buckets);
+	
+	
 /*	March through your data left to right
 Test each grid temperature value against that of it's neighbors
 If they are the same (after discretization!!!), then do nothing
