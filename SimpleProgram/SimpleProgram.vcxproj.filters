@@ -61,7 +61,7 @@
     <ClCompile Include="src\InitShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\SimpleProgram.cpp">
+    <ClCompile Include="src\CS450AssignmentOne.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

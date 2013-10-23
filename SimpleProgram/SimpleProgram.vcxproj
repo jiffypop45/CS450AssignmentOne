@@ -29,12 +29,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\InitShader.cpp" />
-    <ClCompile Include="src\SimpleProgram.cpp" />
+    <ClCompile Include="src\CS450AssignmentOne.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{44CDD105-9D58-41B8-9EF0-3924866DF065}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>SimpleProgram</RootNamespace>
+    <ProjectName>CS450AssignmentOne</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
