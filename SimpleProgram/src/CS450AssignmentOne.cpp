@@ -178,54 +178,7 @@ keyboard(unsigned char key, int x, int y)
     }
 }
 
-//----------------------------------------------------------------------------
-// the HSV color model will be as follows
-// h : [0 - 360]
-// s : [0 - 1]
-// v : [0 - 1]
-// If you want it differently (in a 2 * pi scale, 256 instead of 1, etc,
-// you'll have to change it yourself.
-// rgb is returned in 0-1 scale (ready for color3f)
-void HSVtoRGB(float hsv[3], float rgb[3]) {
-	float tmp1 = hsv[2] * (1-hsv[1]);
-	float tmp2 = hsv[2] * (1-hsv[1] * (hsv[0] / 60.0f - (int) (hsv[0]/60.0f) ));
-	float tmp3 = hsv[2] * (1-hsv[1] * (1 - (hsv[0] / 60.0f - (int) (hsv[0]/60.0f) )));
-	switch((int)(hsv[0] / 60)) {
-		case 0:
-			rgb[0] = hsv[2] ;
-			rgb[1] = tmp3 ;
-			rgb[2] = tmp1 ;
-			break;
-		case 1:
-			rgb[0] = tmp2 ;
-			rgb[1] = hsv[2] ;
-			rgb[2] = tmp1 ;
-			break;
-		case 2:
-			rgb[0] = tmp1 ;
-			rgb[1] = hsv[2] ;
-			rgb[2] = tmp3 ;
-			break;
-		case 3:
-			rgb[0] = tmp1 ;
-			rgb[1] = tmp2 ;
-			rgb[2] = hsv[2] ;
-			break;
-		case 4:
-			rgb[0] = tmp3 ;
-			rgb[1] = tmp1 ;
-			rgb[2] = hsv[2] ;
-			break;
-		case 5:
-			rgb[0] = hsv[2] ;
-			rgb[1] = tmp1 ;
-			rgb[2] = tmp2 ;
-			break;
-		default:
-			std::cout << "Inconceivable!\n";
-	}
-    
-}
+
 
 // takes in the data point coordinates, outputs a location for OpenGL to use
 std::pair<GLfloat, GLfloat> calc_xy(int x_in, int y_in) 
